@@ -248,15 +248,24 @@ class JigsawApp {
   }
 
   setupFeedbackWidget() {
+    if (this.dom.feedbackText) {
+      this.dom.feedbackText.value = '';
+    }
+
     if (this.dom.btnFeedbackToggle) {
       this.dom.btnFeedbackToggle.addEventListener('click', () => {
         audioEngine.playClick();
+        const isHidden = this.dom.feedbackBox.classList.contains('hidden');
+        if (isHidden && this.dom.feedbackText) {
+          this.dom.feedbackText.value = '';
+        }
         this.dom.feedbackBox.classList.toggle('hidden');
       });
     }
 
     if (this.dom.btnFeedbackClose) {
       this.dom.btnFeedbackClose.addEventListener('click', () => {
+        if (this.dom.feedbackText) this.dom.feedbackText.value = '';
         this.dom.feedbackBox.classList.add('hidden');
       });
     }
