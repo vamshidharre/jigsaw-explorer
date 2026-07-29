@@ -43,6 +43,7 @@ class JigsawApp {
       roomLinkInput: document.getElementById('roomLinkInput'),
       btnCopyRoomLink: document.getElementById('btnCopyRoomLink'),
       playerNameInput: document.getElementById('playerNameInput'),
+      btnSavePlayerName: document.getElementById('btnSavePlayerName'),
       modalLeaderboard: document.getElementById('modalLeaderboard'),
       leaderboardTbody: document.getElementById('leaderboardTbody'),
       modalGallery: document.getElementById('modalGallery'),
@@ -184,9 +185,29 @@ class JigsawApp {
       });
     });
 
-    this.dom.playerNameInput.addEventListener('input', (e) => {
-      if (window.multiplayerClient) {
-        window.multiplayerClient.setPlayerName(e.target.value);
+    const saveNameAction = () => {
+      audioEngine.playClick();
+      const newName = this.dom.playerNameInput.value.trim();
+      if (window.multiplayerClient && newName) {
+        window.multiplayerClient.setPlayerName(newName);
+        this.showToast(`Player name saved as "${newName}"!`);
+
+        if (this.dom.btnSavePlayerName) {
+          this.dom.btnSavePlayerName.textContent = '✓ Done';
+          setTimeout(() => {
+            if (this.dom.btnSavePlayerName) this.dom.btnSavePlayerName.textContent = 'Save';
+          }, 1800);
+        }
+      }
+    };
+
+    if (this.dom.btnSavePlayerName) {
+      this.dom.btnSavePlayerName.addEventListener('click', saveNameAction);
+    }
+
+    this.dom.playerNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        saveNameAction();
       }
     });
   }
@@ -401,7 +422,6 @@ class JigsawApp {
           this.showToast('Pieces snapped together!');
         }
 
-        // Add Points & Trigger Canvas Score Animation
         this.scoreEngine.addSnapPoints(
           snapResult.type,
           snapResult.lastX,
@@ -537,7 +557,6 @@ class JigsawApp {
 
     this.launchConfetti();
 
-    // Calculate final scores
     const finalCalc = this.scoreEngine.calculateFinalBonus(this.secondsElapsed);
     
     document.getElementById('vTime').textContent = this.dom.timerDisplay.textContent;
@@ -550,7 +569,6 @@ class JigsawApp {
 
     document.getElementById('victoryPreviewImg').src = this.currentImageUrl;
 
-    // Save to High Score Leaderboard
     const playerName = window.multiplayerClient ? window.multiplayerClient.playerName : 'Player 1';
     this.scoreEngine.saveHighScore(
       playerName,
