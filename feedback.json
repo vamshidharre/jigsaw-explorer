@@ -4,5 +4,11 @@
     "timestamp": "2026-07-29T23:07:00.000Z",
     "name": "System",
     "message": "Feedback log initialized successfully. Player submissions will appear here!"
+  },
+  {
+    "id": 1785359441250,
+    "timestamp": "2026-07-29T21:10:41.251Z",
+    "name": "TestUser",
+    "message": "Testing feedback submission!"
   }
 ]

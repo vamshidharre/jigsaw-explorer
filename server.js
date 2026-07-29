@@ -11,6 +11,7 @@ const { Server: WebSocketServer } = require('ws');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const FEEDBACK_FILE = path.join(__dirname, 'feedback.json');
+const FEEDBACK_TXT = path.join(__dirname, 'feedback.txt');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -41,25 +42,42 @@ function getFeedbacksFromFile() {
 }
 
 function saveFeedback(playerName, text) {
-  const feedbackList = getFeedbacksFromFile();
+  const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const name = playerName || 'Anonymous';
+  const cleanMessage = text.replace(/[\r\n]+/g, ' ');
 
+  // 1. Single line entry in feedback.txt
+  const logLine = `[${timestamp}] [${name}]: ${cleanMessage}\n`;
+  fs.appendFileSync(FEEDBACK_TXT, logLine);
+
+  // 2. Structured entry in feedback.json
+  const feedbackList = getFeedbacksFromFile();
   const entry = {
     id: Date.now(),
-    timestamp: new Date().toISOString(),
-    name: playerName || 'Anonymous',
-    message: text
+    timestamp,
+    name,
+    message: cleanMessage
   };
-
   feedbackList.push(entry);
   fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedbackList, null, 2));
-  console.log(`[FEEDBACK SAVED] from ${entry.name}: "${text}"`);
+
+  console.log(`[FEEDBACK LOGGED] ${logLine.trim()}`);
   return entry;
 }
 
-// GET API Endpoint to read all submitted user feedback
+// GET API Endpoint to read all submitted user feedback line-by-line
 app.get('/api/feedback', (req, res) => {
-  const data = getFeedbacksFromFile();
-  res.json(data);
+  if (req.query.format === 'json') {
+    return res.json(getFeedbacksFromFile());
+  }
+
+  if (fs.existsSync(FEEDBACK_TXT)) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    return res.send(fs.readFileSync(FEEDBACK_TXT, 'utf8'));
+  }
+
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.send('No feedback recorded yet.\n');
 });
 
 // POST API Endpoint to submit user feedback
