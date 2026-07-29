@@ -3,15 +3,6 @@
    ========================================================================== */
 
 const PUZZLE_GALLERY = [
-  // Default Featured Image (PNG with solid white background)
-  {
-    id: 'default-signature',
-    category: 'nature',
-    title: 'Featured Signature Puzzle',
-    url: 'default_puzzle.png',
-    thumb: 'default_puzzle.png'
-  },
-
   // Nature
   {
     id: 'nature-1',
