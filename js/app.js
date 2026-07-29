@@ -121,6 +121,12 @@ class JigsawApp {
   }
 
   startNewGame(imageUrl, title, cols, rows) {
+    // Non-host guests cannot start a new game mid-session
+    if (window.multiplayerClient && window.multiplayerClient.isConnected && !window.multiplayerClient.isHost) {
+      this.showToast('Only the Room Host 👑 can change the puzzle image!');
+      return;
+    }
+
     this.currentImageUrl = imageUrl;
     this.currentTitle = title;
     this.cols = cols;
@@ -143,7 +149,7 @@ class JigsawApp {
       this.engine.loadPuzzle(img, cols, rows, this.rotationEnabled);
       this.startTimer();
 
-      if (window.multiplayerClient && window.multiplayerClient.isConnected) {
+      if (window.multiplayerClient && window.multiplayerClient.isConnected && window.multiplayerClient.isHost) {
         window.multiplayerClient.sendNewPuzzle(imageUrl, title, cols, rows, this.rotationEnabled);
       }
 
@@ -592,7 +598,7 @@ class JigsawApp {
     document.getElementById('btnNextGallery')?.addEventListener('click', () => {
       this.closeAllModals();
       const nextImg = this.gallery.getRandomNextImage(this.currentImageUrl);
-      this.startNewGame(nextImg.url, nextImg.title, this.cols, this.rows);
+      this.startNewGame(this.currentImageUrl, this.currentTitle, this.cols, this.rows);
     });
   }
 

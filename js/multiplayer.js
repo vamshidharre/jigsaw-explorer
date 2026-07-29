@@ -11,7 +11,6 @@ class MultiplayerClient {
     this.isHost = false;
     this.selfColor = '#6366f1';
     
-    // Restore player name from localStorage or generate default
     const savedName = localStorage.getItem('jigsaw_player_name');
     this.playerName = savedName || ('Player ' + Math.floor(100 + Math.random() * 900));
     if (!savedName) {
@@ -94,8 +93,10 @@ class MultiplayerClient {
 
     this.ws.onclose = () => {
       this.isConnected = false;
+      this.isHost = false;
       this.app.showToast('Disconnected from multiplayer room.');
       this.updatePlayersUI();
+      this.updatePermissionsUI();
     };
 
     this.ws.onerror = (err) => {
@@ -127,7 +128,8 @@ class MultiplayerClient {
         payload.players.forEach(p => this.players.set(p.id, p));
 
         this.updatePlayersUI();
-        this.app.showToast(this.isHost ? 'Multiplayer Room Created!' : 'Joined Multiplayer Room!');
+        this.updatePermissionsUI();
+        this.app.showToast(this.isHost ? 'Multiplayer Room Created (You are Host 👑)!' : 'Joined Multiplayer Room (Guest Mode)!');
 
         if (!this.isHost && payload.imageUrl) {
           this.applyRemotePuzzleState(payload);
@@ -140,6 +142,13 @@ class MultiplayerClient {
         this.players.clear();
         players.forEach(p => this.players.set(p.id, p));
 
+        // Check if host status was transferred to us
+        const self = this.players.get(this.selfId);
+        if (self && self.isHost !== this.isHost) {
+          this.isHost = self.isHost;
+          this.updatePermissionsUI();
+        }
+
         this.updatePlayersUI();
         audioEngine.playClick();
         this.app.showToast(`${player.name} joined the room!`);
@@ -151,6 +160,14 @@ class MultiplayerClient {
         const leftPlayer = this.players.get(playerId);
         this.players.clear();
         players.forEach(p => this.players.set(p.id, p));
+
+        // Host migration check
+        const self = this.players.get(this.selfId);
+        if (self && self.isHost && !this.isHost) {
+          this.isHost = true;
+          this.updatePermissionsUI();
+          this.app.showToast('You are now the Room Host 👑!');
+        }
 
         this.updatePlayersUI();
         if (leftPlayer) {
@@ -203,6 +220,19 @@ class MultiplayerClient {
     }
   }
 
+  updatePermissionsUI() {
+    const btnGallery = this.app.dom.btnGallery;
+    const btnUpload = this.app.dom.btnUpload;
+    const btnDifficulty = this.app.dom.btnDifficulty;
+
+    // Non-host guests cannot change global game image or difficulty grid
+    const isGuest = this.isConnected && !this.isHost;
+
+    if (btnGallery) btnGallery.classList.toggle('hidden', isGuest);
+    if (btnUpload) btnUpload.classList.toggle('hidden', isGuest);
+    if (btnDifficulty) btnDifficulty.classList.toggle('hidden', isGuest);
+  }
+
   sendCursorPosition(worldX, worldY) {
     if (!this.isConnected) return;
     const now = Date.now();
@@ -226,7 +256,7 @@ class MultiplayerClient {
   }
 
   sendNewPuzzle(imageUrl, title, cols, rows, rotationEnabled) {
-    if (!this.isConnected) return;
+    if (!this.isConnected || !this.isHost) return;
     this.send('new_puzzle', {
       imageUrl,
       title,
@@ -320,9 +350,13 @@ class MultiplayerClient {
       const badge = document.createElement('div');
       badge.className = 'player-badge';
       badge.style.borderColor = p.color;
+
+      const crown = p.isHost ? '<span title="Room Host">👑</span> ' : '';
+      const youLabel = p.id === this.selfId ? ' (You)' : '';
+
       badge.innerHTML = `
         <span class="player-dot" style="background-color: ${p.color}"></span>
-        <span class="player-name">${p.name} ${p.id === this.selfId ? '(You)' : ''}</span>
+        <span class="player-name">${crown}${p.name}${youLabel}</span>
       `;
       playerListEl.appendChild(badge);
     });

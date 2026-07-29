@@ -10,26 +10,22 @@ const { Server: WebSocketServer } = require('ws');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve static web files
 app.use(express.static(path.join(__dirname)));
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-// Active Rooms Registry
-// roomId -> { id, imageUrl, title, cols, rows, rotationEnabled, pieces, players, secondsElapsed }
 const rooms = new Map();
 
-// Color Palette for player cursors
 const CURSOR_COLORS = [
-  '#ef4444', // Red
-  '#3b82f6', // Blue
-  '#10b981', // Emerald
-  '#f59e0b', // Amber
-  '#ec4899', // Pink
-  '#8b5cf6', // Purple
-  '#06b6d4', // Cyan
-  '#f97316'  // Orange
+  '#ef4444',
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#ec4899',
+  '#8b5cf6',
+  '#06b6d4',
+  '#f97316'
 ];
 
 function getRandomColor() {
@@ -42,7 +38,7 @@ function broadcastToRoom(roomId, message, excludeWs = null) {
 
   const jsonStr = JSON.stringify(message);
   room.players.forEach((player) => {
-    if (player.ws !== excludeWs && player.ws.readyState === 1) { // 1 = OPEN
+    if (player.ws !== excludeWs && player.ws.readyState === 1) {
       player.ws.send(jsonStr);
     }
   });
@@ -82,7 +78,6 @@ wss.on('connection', (ws) => {
           const isFirstPlayer = !room;
 
           if (!room) {
-            // Create new room with host's initial puzzle state
             room = {
               id: roomId,
               imageUrl: puzzleState ? puzzleState.imageUrl : '',
@@ -109,7 +104,6 @@ wss.on('connection', (ws) => {
 
           room.players.set(clientId, player);
 
-          // 1. Send init state to joining player
           ws.send(JSON.stringify({
             type: 'room_init',
             payload: {
@@ -126,7 +120,6 @@ wss.on('connection', (ws) => {
             }
           }));
 
-          // 2. Notify other players in room
           broadcastToRoom(roomId, {
             type: 'player_joined',
             payload: {
@@ -185,7 +178,6 @@ wss.on('connection', (ws) => {
           if (!clientRoomId) return;
           const room = rooms.get(clientRoomId);
           if (room) {
-            // Update server master piece state
             if (payload.piecesState) {
               room.pieces = payload.piecesState;
             }
@@ -206,6 +198,10 @@ wss.on('connection', (ws) => {
           if (!clientRoomId) return;
           const room = rooms.get(clientRoomId);
           if (room) {
+            // Only host can reset puzzle
+            const player = room.players.get(clientId);
+            if (!player || !player.isHost) return;
+
             room.imageUrl = payload.imageUrl;
             room.title = payload.title;
             room.cols = payload.cols;
@@ -237,13 +233,23 @@ wss.on('connection', (ws) => {
     if (clientRoomId && clientId) {
       const room = rooms.get(clientRoomId);
       if (room) {
+        const leavingPlayer = room.players.get(clientId);
+        const wasHost = leavingPlayer ? leavingPlayer.isHost : false;
+        
         room.players.delete(clientId);
 
         if (room.players.size === 0) {
-          // Clean empty room
           rooms.delete(clientRoomId);
         } else {
-          // Notify remaining players
+          // If host left, promote the next player to host
+          if (wasHost) {
+            const nextHostKey = room.players.keys().next().value;
+            const newHost = room.players.get(nextHostKey);
+            if (newHost) {
+              newHost.isHost = true;
+            }
+          }
+
           broadcastToRoom(clientRoomId, {
             type: 'player_left',
             payload: {
