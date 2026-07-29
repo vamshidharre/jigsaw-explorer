@@ -27,7 +27,15 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname)));
+// Serve only the front-end assets. Serving __dirname exposed server.js,
+// package.json, feedback.json, node_modules and the whole .git directory.
+app.get(['/', '/index.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+app.get('/styles.css', (req, res) => {
+  res.sendFile(path.join(__dirname, 'styles.css'));
+});
+app.use('/js', express.static(path.join(__dirname, 'js')));
 
 function getFeedbacksFromFile() {
   if (fs.existsSync(FEEDBACK_FILE)) {
@@ -99,6 +107,15 @@ app.post('/api/feedback', (req, res) => {
 
   const entry = saveFeedback(playerName, message.trim());
   res.json({ success: true, entry });
+});
+
+// Return clean JSON errors instead of leaking stack traces and absolute paths
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
+  console.error('Unhandled server error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 const server = http.createServer(app);
@@ -241,6 +258,25 @@ wss.on('connection', (ws) => {
           break;
         }
 
+        case 'set_name': {
+          if (!clientRoomId || !clientId) return;
+          const room = rooms.get(clientRoomId);
+          if (!room) return;
+
+          const player = room.players.get(clientId);
+          if (!player) return;
+
+          const newName = String(payload.playerName || '').trim().slice(0, 24);
+          if (!newName) return;
+
+          player.name = newName;
+          broadcastToRoom(clientRoomId, {
+            type: 'players_updated',
+            payload: { players: getSanitizedPlayers(room) }
+          });
+          break;
+        }
+
         case 'update_room_capacity': {
           if (!clientRoomId || !clientId) return;
           const room = rooms.get(clientRoomId);
@@ -337,7 +373,7 @@ wss.on('connection', (ws) => {
                 rotationEnabled: room.rotationEnabled,
                 pieces: room.pieces
               }
-            });
+            }, ws);
           }
           break;
         }

@@ -30,6 +30,13 @@ class JigsawPiece {
     if (!this.visible) return false;
     ctx.save();
     ctx.translate(this.x, this.y);
+    // Mirror the transform drawPiece() uses, otherwise a rotated piece is not
+    // clickable where it is actually drawn.
+    if (this.rotation !== 0) {
+      ctx.translate(this.width / 2, this.height / 2);
+      ctx.rotate((this.rotation * Math.PI) / 180);
+      ctx.translate(-this.width / 2, -this.height / 2);
+    }
     const inPath = ctx.isPointInPath(this.path, px, py);
     ctx.restore();
     return inPath;
@@ -561,8 +568,16 @@ class JigsawEngine {
           const isNeighbor = (Math.abs(p.col - other.col) + Math.abs(p.row - other.row)) === 1;
 
           if (isNeighbor && p.rotation === other.rotation) {
-            const expectedDx = p.targetX - other.targetX;
-            const expectedDy = p.targetY - other.targetY;
+            // Both pieces share a rotation, so the solved offset between them is
+            // rotated by the same amount. At rotation 0 this is a no-op.
+            const rad = (p.rotation * Math.PI) / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+            const rawDx = p.targetX - other.targetX;
+            const rawDy = p.targetY - other.targetY;
+
+            const expectedDx = rawDx * cos - rawDy * sin;
+            const expectedDy = rawDx * sin + rawDy * cos;
 
             const actualDx = p.x - other.x;
             const actualDy = p.y - other.y;

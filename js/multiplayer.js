@@ -12,11 +12,10 @@ class MultiplayerClient {
     this.selfColor = '#6366f1';
     this.maxPlayers = 4;
     
+    // Keep the auto-generated fallback in memory only. Persisting it here would
+    // pre-fill the welcome prompt with a junk "Player 123" the user has to erase.
     const savedName = localStorage.getItem('jigsaw_player_name');
     this.playerName = savedName || ('Player ' + Math.floor(100 + Math.random() * 900));
-    if (!savedName) {
-      localStorage.setItem('jigsaw_player_name', this.playerName);
-    }
 
     this.players = new Map();
     this.isConnected = false;
@@ -34,6 +33,8 @@ class MultiplayerClient {
       const self = this.players.get(this.selfId);
       if (self) self.name = name;
       this.updatePlayersUI();
+      // Tell the room, otherwise everyone else keeps seeing the old name
+      this.send('set_name', { playerName: name });
     }
   }
 
@@ -162,6 +163,13 @@ class MultiplayerClient {
         break;
       }
 
+      case 'players_updated': {
+        this.players.clear();
+        payload.players.forEach(p => this.players.set(p.id, p));
+        this.updatePlayersUI();
+        break;
+      }
+
       case 'player_joined': {
         const { player, players } = payload;
         this.players.clear();
@@ -186,15 +194,21 @@ class MultiplayerClient {
         players.forEach(p => this.players.set(p.id, p));
 
         const self = this.players.get(this.selfId);
-        if (self && self.isHost && !this.isHost) {
+        const promotedToHost = self && self.isHost && !this.isHost;
+        if (promotedToHost) {
           this.isHost = true;
           this.updatePermissionsUI();
-          this.app.showToast('You are now the Room Host 👑!');
         }
 
         this.updatePlayersUI();
+
+        // Announce the promotion last, otherwise the "left the room" toast
+        // immediately overwrites it and the new host never sees it.
         if (leftPlayer) {
           this.app.showToast(`${leftPlayer.name} left the room.`);
+        }
+        if (promotedToHost) {
+          setTimeout(() => this.app.showToast('You are now the Room Host 👑!'), 2400);
         }
         break;
       }
@@ -354,6 +368,17 @@ class MultiplayerClient {
 
       this.app.dom.puzzleTitle.textContent = state.title;
       this.app.dom.pieceCountBadge.textContent = `${state.cols * state.rows} Pieces`;
+      this.app.dom.difficultyBadge.textContent =
+        this.app.getDifficultyLabel(state.cols, state.rows);
+
+      // Progress, score and clock all belong to the previous puzzle - reset them
+      this.app.scoreEngine.resetScore();
+      this.app.updateProgressUI(
+        this.app.engine.getConnectedCount(),
+        this.app.engine.pieces.length
+      );
+      this.app.resetTimer();
+      this.app.startTimer();
     };
   }
 
@@ -375,13 +400,18 @@ class MultiplayerClient {
       badge.className = 'player-badge';
       badge.style.borderColor = p.color;
 
-      const crown = p.isHost ? '<span title="Room Host">👑</span> ' : '';
-      const youLabel = p.id === this.selfId ? ' (You)' : '';
+      const dot = document.createElement('span');
+      dot.className = 'player-dot';
+      dot.style.backgroundColor = p.color;
 
-      badge.innerHTML = `
-        <span class="player-dot" style="background-color: ${p.color}"></span>
-        <span class="player-name">${crown}${p.name}${youLabel}</span>
-      `;
+      // Names come from other clients, so build this as text rather than markup
+      const nameEl = document.createElement('span');
+      nameEl.className = 'player-name';
+      nameEl.textContent =
+        (p.isHost ? '👑 ' : '') + p.name + (p.id === this.selfId ? ' (You)' : '');
+
+      badge.appendChild(dot);
+      badge.appendChild(nameEl);
       playerListEl.appendChild(badge);
     });
   }

@@ -159,6 +159,13 @@ class JigsawApp {
         window.multiplayerClient.setPlayerName(enteredName);
       }
       this.dom.modalWelcomeName.classList.add('hidden');
+
+      // The clock was already ticking behind the modal - start it from now
+      if (this.engine.pieces.length > 0) {
+        this.resetTimer();
+        this.startTimer();
+      }
+
       this.showToast(`Welcome, ${enteredName}! Have fun 🧩`);
     };
 
@@ -211,6 +218,20 @@ class JigsawApp {
       this.dom.modalWelcomeName.classList.remove('hidden');
     }
 
+    // Load the image first and only commit the new game once it succeeds, so a
+    // broken URL can't leave the board, title, timer and progress out of sync.
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      this.commitNewGame(img, imageUrl, title, cols, rows);
+    };
+    img.onerror = () => {
+      alert('Failed to load puzzle image. Please try another image.');
+    };
+    img.src = imageUrl;
+  }
+
+  commitNewGame(img, imageUrl, title, cols, rows) {
     // Erase old leaderboard when a new game starts
     this.scoreEngine.clearHighScores();
 
@@ -224,27 +245,20 @@ class JigsawApp {
     this.dom.pieceCountBadge.textContent = `${pieceCount} Pieces`;
     this.dom.difficultyBadge.textContent = this.getDifficultyLabel(cols, rows);
 
-    this.resetTimer();
     this.totalMoves = 0;
     this.scoreEngine.resetScore();
     this.updateProgressUI(0, pieceCount);
 
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.src = imageUrl;
-    img.onload = () => {
-      this.engine.loadPuzzle(img, cols, rows, this.rotationEnabled);
-      this.startTimer();
+    this.engine.loadPuzzle(img, cols, rows, this.rotationEnabled);
 
-      if (window.multiplayerClient && window.multiplayerClient.isConnected && window.multiplayerClient.isHost) {
-        window.multiplayerClient.sendNewPuzzle(imageUrl, title, cols, rows, this.rotationEnabled);
-      }
+    this.resetTimer();
+    this.startTimer();
 
-      this.showToast(`New ${pieceCount}-piece (${this.getDifficultyLabel(cols, rows)}) puzzle started!`);
-    };
-    img.onerror = () => {
-      alert('Failed to load puzzle image. Please try another image.');
-    };
+    if (window.multiplayerClient && window.multiplayerClient.isConnected && window.multiplayerClient.isHost) {
+      window.multiplayerClient.sendNewPuzzle(imageUrl, title, cols, rows, this.rotationEnabled);
+    }
+
+    this.showToast(`New ${pieceCount}-piece (${this.getDifficultyLabel(cols, rows)}) puzzle started!`);
   }
 
   setupFeedbackWidget() {
