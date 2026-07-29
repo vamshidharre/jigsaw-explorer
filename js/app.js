@@ -210,16 +210,17 @@ class JigsawApp {
         audioEngine.playClick();
         const playerName = window.multiplayerClient ? window.multiplayerClient.playerName : 'Player 1';
 
-        if (window.multiplayerClient && window.multiplayerClient.isConnected) {
-          window.multiplayerClient.send('submit_feedback', { playerName, text });
-        } else {
-          // Fallback HTTP submission to server
-          fetch('/api/feedback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ playerName, message: text })
-          }).catch(() => {});
-        }
+        fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerName, message: text })
+        }).then(res => res.json()).then(data => {
+          if (data && data.success) {
+            console.log('Feedback saved successfully:', data.entry);
+          }
+        }).catch(err => {
+          console.error('Feedback submit error:', err);
+        });
 
         this.dom.feedbackText.value = '';
         this.dom.feedbackBox.classList.add('hidden');

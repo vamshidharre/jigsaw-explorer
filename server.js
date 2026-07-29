@@ -13,19 +13,64 @@ const PORT = process.env.PORT || 3000;
 const FEEDBACK_FILE = path.join(__dirname, 'feedback.json');
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Enable CORS for API requests
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.static(path.join(__dirname)));
 
-// API Endpoint to read all submitted user feedback
-app.get('/api/feedback', (req, res) => {
+function getFeedbacksFromFile() {
   if (fs.existsSync(FEEDBACK_FILE)) {
     try {
       const data = fs.readFileSync(FEEDBACK_FILE, 'utf8');
-      return res.json(JSON.parse(data));
+      return JSON.parse(data);
     } catch (e) {
-      return res.json([]);
+      return [];
     }
   }
-  res.json([]);
+  return [];
+}
+
+function saveFeedback(playerName, text) {
+  const feedbackList = getFeedbacksFromFile();
+
+  const entry = {
+    id: Date.now(),
+    timestamp: new Date().toISOString(),
+    name: playerName || 'Anonymous',
+    message: text
+  };
+
+  feedbackList.push(entry);
+  fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedbackList, null, 2));
+  console.log(`[FEEDBACK SAVED] from ${entry.name}: "${text}"`);
+  return entry;
+}
+
+// GET API Endpoint to read all submitted user feedback
+app.get('/api/feedback', (req, res) => {
+  const data = getFeedbacksFromFile();
+  res.json(data);
+});
+
+// POST API Endpoint to submit user feedback
+app.post('/api/feedback', (req, res) => {
+  const { playerName, message } = req.body || {};
+  if (!message || !message.trim()) {
+    return res.status(400).json({ error: 'Feedback message cannot be empty' });
+  }
+
+  const entry = saveFeedback(playerName, message.trim());
+  res.json({ success: true, entry });
 });
 
 const server = http.createServer(app);
@@ -73,28 +118,6 @@ function getSanitizedPlayers(room) {
     });
   });
   return result;
-}
-
-function saveFeedback(playerName, text) {
-  let feedbackList = [];
-  if (fs.existsSync(FEEDBACK_FILE)) {
-    try {
-      feedbackList = JSON.parse(fs.readFileSync(FEEDBACK_FILE, 'utf8'));
-    } catch (e) {
-      feedbackList = [];
-    }
-  }
-
-  const entry = {
-    id: Date.now(),
-    timestamp: new Date().toISOString(),
-    name: playerName || 'Anonymous',
-    message: text
-  };
-
-  feedbackList.push(entry);
-  fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedbackList, null, 2));
-  console.log(`[FEEDBACK] Received from ${entry.name}: "${text}"`);
 }
 
 wss.on('connection', (ws) => {
@@ -264,10 +287,10 @@ wss.on('connection', (ws) => {
         case 'submit_feedback': {
           const { playerName, text } = payload;
           if (text && text.trim()) {
-            saveFeedback(playerName, text.trim());
+            const entry = saveFeedback(playerName, text.trim());
             ws.send(JSON.stringify({
               type: 'feedback_response',
-              payload: { success: true }
+              payload: { success: true, entry }
             }));
           }
           break;
