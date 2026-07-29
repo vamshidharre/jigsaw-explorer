@@ -46,6 +46,7 @@ class JigsawApp {
       btnSavePlayerName: document.getElementById('btnSavePlayerName'),
       modalLeaderboard: document.getElementById('modalLeaderboard'),
       leaderboardTbody: document.getElementById('leaderboardTbody'),
+      victoryLeaderboardTbody: document.getElementById('victoryLeaderboardTbody'),
       modalGallery: document.getElementById('modalGallery'),
       modalUpload: document.getElementById('modalUpload'),
       modalDifficulty: document.getElementById('modalDifficulty'),
@@ -121,7 +122,6 @@ class JigsawApp {
   }
 
   startNewGame(imageUrl, title, cols, rows) {
-    // Non-host guests cannot start a new game mid-session
     if (window.multiplayerClient && window.multiplayerClient.isConnected && !window.multiplayerClient.isHost) {
       this.showToast('Only the Room Host 👑 can change the puzzle image!');
       return;
@@ -221,25 +221,28 @@ class JigsawApp {
   setupLeaderboardModal() {
     this.dom.btnLeaderboard.addEventListener('click', () => {
       audioEngine.playClick();
-      this.renderLeaderboard();
+      this.renderLeaderboard(this.dom.leaderboardTbody);
       this.dom.modalLeaderboard.classList.remove('hidden');
     });
   }
 
-  renderLeaderboard() {
-    const tbody = this.dom.leaderboardTbody;
-    if (!tbody) return;
+  renderLeaderboard(tbodyTarget, activeEntryId = null) {
+    if (!tbodyTarget) return;
 
     const scores = this.scoreEngine.getHighScores();
-    tbody.innerHTML = '';
+    tbodyTarget.innerHTML = '';
 
     if (scores.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">No high scores recorded yet. Complete a puzzle to claim your rank!</td></tr>`;
+      tbodyTarget.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">No high scores recorded yet. Complete a puzzle to claim your rank!</td></tr>`;
       return;
     }
 
     scores.forEach((entry, idx) => {
       const tr = document.createElement('tr');
+      if (activeEntryId && entry.id === activeEntryId) {
+        tr.className = 'new-score-row';
+      }
+
       let rankStr = `${idx + 1}`;
       if (idx === 0) rankStr = '🥇 1st';
       else if (idx === 1) rankStr = '🥈 2nd';
@@ -256,7 +259,7 @@ class JigsawApp {
         <td>${mins}:${secs}</td>
         <td style="color: var(--warning-color); font-weight: 800;">${entry.score.toLocaleString()} PTS</td>
       `;
-      tbody.appendChild(tr);
+      tbodyTarget.appendChild(tr);
     });
   }
 
@@ -573,16 +576,21 @@ class JigsawApp {
     document.getElementById('sbSpeed').textContent = `+${finalCalc.speedBonus.toLocaleString()}`;
     document.getElementById('sbDiff').textContent = `+${finalCalc.difficultyBonus.toLocaleString()}`;
 
-    document.getElementById('victoryPreviewImg').src = this.currentImageUrl;
-
     const playerName = window.multiplayerClient ? window.multiplayerClient.playerName : 'Player 1';
-    this.scoreEngine.saveHighScore(
+    const updatedScores = this.scoreEngine.saveHighScore(
       playerName,
       this.currentTitle,
       this.engine.pieces.length,
       this.secondsElapsed,
       finalCalc.totalFinalScore
     );
+
+    // Find new entry ID to highlight on victory scoreboard
+    const lastSaved = updatedScores.find(s => s.score === finalCalc.totalFinalScore && s.name === playerName);
+    const newEntryId = lastSaved ? lastSaved.id : null;
+
+    // Render embedded Leaderboard on Victory Modal
+    this.renderLeaderboard(this.dom.victoryLeaderboardTbody, newEntryId);
 
     setTimeout(() => {
       this.dom.modalVictory.classList.remove('hidden');
@@ -598,7 +606,7 @@ class JigsawApp {
     document.getElementById('btnNextGallery')?.addEventListener('click', () => {
       this.closeAllModals();
       const nextImg = this.gallery.getRandomNextImage(this.currentImageUrl);
-      this.startNewGame(this.currentImageUrl, this.currentTitle, this.cols, this.rows);
+      this.startNewGame(nextImg.url, nextImg.title, this.cols, this.rows);
     });
   }
 

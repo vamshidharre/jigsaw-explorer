@@ -345,10 +345,10 @@
       </div>
     </div>
 
-    <!-- Modal: Victory / Completion -->
+    <!-- Modal: Victory / Completion with Embedded Scoreboard -->
     <div id="modalVictory" class="modal hidden">
       <div class="modal-backdrop"></div>
-      <div class="modal-card victory-card">
+      <div class="modal-card victory-card modal-large">
         <div class="victory-header">
           <div class="trophy-icon">🏆</div>
           <h2>Puzzle Completed!</h2>
@@ -377,8 +377,24 @@
           <div class="sb-row"><span>Difficulty Bonus:</span><strong id="sbDiff">+480</strong></div>
         </div>
 
-        <div class="victory-image-preview">
-          <img id="victoryPreviewImg" src="" alt="Completed Puzzle">
+        <!-- Embedded Live Scoreboard Table -->
+        <div class="victory-scoreboard-wrap">
+          <h4 class="scoreboard-title">🏆 Leaderboard Rankings</h4>
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th>Puzzle</th>
+                <th>Pieces</th>
+                <th>Time</th>
+                <th>Score</th>
+              </tr>
+            </thead>
+            <tbody id="victoryLeaderboardTbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
         </div>
 
         <div class="modal-footer victory-actions">
