@@ -69,6 +69,7 @@ class JigsawApp {
   init() {
     this.setupWindowResize();
     this.setupAudioControls();
+    this.setupLogoRestart();
     this.setupGalleryAndUpload();
     this.setupDifficultyModal();
     this.setupLeaderboardModal();
@@ -115,6 +116,18 @@ class JigsawApp {
         this.dom.iconSoundOn.classList.toggle('hidden', isMuted);
         this.dom.iconSoundOff.classList.toggle('hidden', !isMuted);
         audioEngine.playClick();
+      });
+    }
+  }
+
+  setupLogoRestart() {
+    const brandLogo = document.getElementById('brandLogo');
+    if (brandLogo) {
+      brandLogo.addEventListener('click', () => {
+        audioEngine.playClick();
+        if (confirm('Restart current puzzle from the beginning?')) {
+          this.startNewGame(this.currentImageUrl, this.currentTitle, this.cols, this.rows);
+        }
       });
     }
   }

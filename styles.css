@@ -89,6 +89,17 @@ html, body {
   display: flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.brand:hover {
+  transform: scale(1.03);
+}
+
+.brand:hover .logo-icon {
+  box-shadow: 0 0 25px rgba(99, 102, 241, 0.6);
+  border-color: var(--accent-primary);
 }
 
 .logo-icon {
