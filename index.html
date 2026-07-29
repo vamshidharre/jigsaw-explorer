@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jigsaw Explorer - Interactive Online Jigsaw Puzzles</title>
+  <meta name="description" content="Play beautiful online jigsaw puzzles with custom piece counts, smooth piece snapping, HD gallery, and real-time co-op multiplayer.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2C10.5 2 9.5 3 9.5 4.5C9.5 5.5 10 6.2 10.8 6.7C10.3 7 10 7.5 10 8.2V10H8.2C7.5 10 7 10.3 6.7 10.8C6.2 10 5.5 9.5 4.5 9.5C3 9.5 2 10.5 2 12C2 13.5 3 14.5 4.5 14.5C5.5 14.5 6.2 14 6.7 13.2C7 13.7 7.5 14 8.2 14H10V15.8C10 16.5 10.3 17 10.8 17.3C10 17.8 9.5 18.5 9.5 19.5C9.5 21 10.5 22 12 22C13.5 22 14.5 21 14.5 19.5C14.5 18.5 14 17.8 13.2 17.3C13.7 17 14 16.5 14 15.8V14H15.8C16.5 14 17 13.7 17.3 13.2C18.1 14 18.8 14.5 19.8 14.5C21.3 14.5 22.3 13.5 22.3 12C22.3 10.5 21.3 9.5 19.8 9.5C18.8 9.5 18.1 10 17.3 10.8C17 10.3 16.5 10 15.8 10H14V8.2C14 7.5 13.7 7 13.2 6.7C14 6.2 14.5 5.5 14.5 4.5C14.5 3 13.5 2 12 2Z" fill="url(#logoGradient)"/>
+            <defs>
+              <linearGradient id="logoGradient" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#6366F1"/>
+                <stop offset="1" stop-color="#8B5CF6"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Jigsaw Explorer</h1>
+          <span class="tagline">Premium Jigsaw Experience</span>
+        </div>
+      </div>
+
+      <!-- Puzzle Title & Meta -->
+      <div class="puzzle-info">
+        <h2 id="puzzleTitle">Alpine Mountain Lake</h2>
+        <div class="puzzle-meta">
+          <span id="pieceCountBadge" class="badge">24 Pieces</span>
+          <span id="difficultyBadge" class="badge badge-accent">Medium</span>
+        </div>
+      </div>
+
+      <!-- Game Stats Bar -->
+      <div class="stats-bar">
+        <div class="stat-item" title="Elapsed Time">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="timerDisplay">00:00</span>
+        </div>
+
+        <div class="stat-item" title="Pieces Connected">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1"/><path d="M18 8h-6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2z"/></svg>
+          <span id="progressText">0 / 24</span>
+        </div>
+
+        <div class="progress-bar-wrap" title="Puzzle Progress">
+          <div id="progressBar" class="progress-bar-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Action Tools -->
+      <div class="header-actions">
+        <!-- Multiplayer Invite Button -->
+        <button id="btnShareRoom" class="btn btn-primary" title="Play with friends">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Play Together</span>
+        </button>
+
+        <button id="btnGallery" class="btn btn-secondary" title="Choose from Image Gallery">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span>Gallery</span>
+        </button>
+
+        <button id="btnUpload" class="btn btn-secondary" title="Upload Custom Photo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>Upload</span>
+        </button>
+
+        <button id="btnDifficulty" class="btn btn-secondary" title="Change Difficulty / Grid">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Grid</span>
+        </button>
+
+        <button id="btnAudioToggle" class="btn btn-icon" title="Toggle Sound FX">
+          <svg id="iconSoundOn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <svg id="iconSoundOff" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Connected Players Online Bar -->
+    <div id="multiplayerBar" class="multiplayer-bar hidden">
+      <span class="mp-label">Live Room:</span>
+      <div id="playerList" class="player-list"></div>
+    </div>
+
+    <!-- Main Workspace Area -->
+    <main class="workspace">
+      <!-- Canvas Container -->
+      <div id="gameViewport" class="game-viewport">
+        <canvas id="jigsawCanvas"></canvas>
+        <canvas id="confettiCanvas" class="overlay-canvas"></canvas>
+
+        <!-- Dynamic Quick Toast / Notifier -->
+        <div id="toast" class="toast hidden">
+          <span id="toastMessage">Pieces snapped!</span>
+        </div>
+      </div>
+
+      <!-- Floating Dock Toolbar -->
+      <div class="floating-dock">
+        <div class="dock-group">
+          <button id="btnZoomIn" class="dock-btn" title="Zoom In">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </button>
+          <button id="btnZoomOut" class="dock-btn" title="Zoom Out">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </button>
+          <button id="btnZoomReset" class="dock-btn" title="Reset View">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+          </button>
+        </div>
+
+        <div class="dock-divider"></div>
+
+        <div class="dock-group">
+          <button id="btnScatter" class="dock-btn" title="Scatter Loose Pieces">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+            <span class="dock-label">Scatter</span>
+          </button>
+
+          <button id="btnEdgeFilter" class="dock-btn" title="Show Edge Pieces Only">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke-dasharray="4 2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+            <span class="dock-label">Edges</span>
+          </button>
+
+          <button id="btnToggleGhost" class="dock-btn active" title="Toggle Background Guide Image">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="dock-label">Guide</span>
+          </button>
+
+          <div class="opacity-slider-wrap" title="Guide Opacity">
+            <input type="range" id="ghostOpacity" min="0" max="0.8" step="0.05" value="0.25">
+          </div>
+        </div>
+
+        <div class="dock-divider"></div>
+
+        <div class="dock-group">
+          <button id="btnSolvePreview" class="dock-btn" title="Hold to Preview Finished Image">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+            <span class="dock-label">Preview</span>
+          </button>
+
+          <button id="btnFullscreen" class="dock-btn" title="Toggle Fullscreen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Modal: Room Share / Multiplayer -->
+    <div id="modalRoomShare" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Multiplayer Room Link</h3>
+          <button class="modal-close" data-close="modalRoomShare">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-subtitle">Share this room link with your friends to solve this jigsaw puzzle together in real-time!</p>
+          
+          <div class="url-input-wrap">
+            <input type="text" id="roomLinkInput" readonly class="text-input">
+            <button id="btnCopyRoomLink" class="btn btn-primary">Copy Link</button>
+          </div>
+
+          <div class="setting-toggle-row" style="margin-top: 18px;">
+            <div class="setting-text">
+              <strong>Your Player Name</strong>
+              <p>Displayed on your live mouse cursor to other players</p>
+            </div>
+            <input type="text" id="playerNameInput" value="Player 1" class="text-input" style="max-width: 140px;">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Image Gallery -->
+    <div id="modalGallery" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card modal-large">
+        <div class="modal-header">
+          <h3>Puzzle Image Gallery</h3>
+          <button class="modal-close" data-close="modalGallery">&times;</button>
+        </div>
+
+        <div class="modal-tabs">
+          <button class="tab-btn active" data-category="nature">Nature & Parks</button>
+          <button class="tab-btn" data-category="landmarks">Landmarks</button>
+          <button class="tab-btn" data-category="animals">Animals</button>
+          <button class="tab-btn" data-category="art">Art & Fantasy</button>
+          <button class="tab-btn" data-category="space">Cosmos & Space</button>
+        </div>
+
+        <div class="modal-body">
+          <div id="galleryGrid" class="gallery-grid">
+            <!-- Dynamic Image Cards Rendered via gallery.js -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Custom Upload -->
+    <div id="modalUpload" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Create Puzzle from Custom Image</h3>
+          <button class="modal-close" data-close="modalUpload">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <div id="dropZone" class="drop-zone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p class="drop-title">Drag & drop your image here</p>
+            <p class="drop-sub">Supports JPG, PNG, WebP (or browse from device)</p>
+            <label class="btn btn-primary btn-file">
+              Browse Files
+              <input type="file" id="fileInput" accept="image/*" class="hidden">
+            </label>
+          </div>
+
+          <div class="divider-text"><span>OR PASTE URL</span></div>
+
+          <div class="url-input-wrap">
+            <input type="url" id="imageUrlInput" placeholder="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200" class="text-input">
+            <button id="btnLoadUrl" class="btn btn-secondary">Load Image</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Difficulty Selector -->
+    <div id="modalDifficulty" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Select Piece Count & Settings</h3>
+          <button class="modal-close" data-close="modalDifficulty">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-subtitle">Choose puzzle grid size:</p>
+          <div class="difficulty-grid">
+            <button class="diff-card" data-cols="3" data-rows="2">
+              <span class="diff-count">6</span>
+              <span class="diff-label">Easy (3 × 2)</span>
+            </button>
+            <button class="diff-card" data-cols="4" data-rows="3">
+              <span class="diff-count">12</span>
+              <span class="diff-label">Casual (4 × 3)</span>
+            </button>
+            <button class="diff-card active" data-cols="6" data-rows="4">
+              <span class="diff-count">24</span>
+              <span class="diff-label">Medium (6 × 4)</span>
+            </button>
+            <button class="diff-card" data-cols="8" data-rows="5">
+              <span class="diff-count">40</span>
+              <span class="diff-label">Challenging (8 × 5)</span>
+            </button>
+            <button class="diff-card" data-cols="10" data-rows="6">
+              <span class="diff-count">60</span>
+              <span class="diff-label">Hard (10 × 6)</span>
+            </button>
+            <button class="diff-card" data-cols="12" data-rows="8">
+              <span class="diff-count">96</span>
+              <span class="diff-label">Expert (12 × 8)</span>
+            </button>
+            <button class="diff-card" data-cols="15" data-rows="10">
+              <span class="diff-count">150</span>
+              <span class="diff-label">Master (15 × 10)</span>
+            </button>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div class="setting-text">
+              <strong>Piece Rotation Mode</strong>
+              <p>Allow pieces to start rotated in 90° increments (right click or double tap to rotate)</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleRotation">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="btnApplyDifficulty" class="btn btn-primary w-full">Start New Puzzle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Victory / Completion -->
+    <div id="modalVictory" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card victory-card">
+        <div class="victory-header">
+          <div class="trophy-icon">🏆</div>
+          <h2>Puzzle Completed!</h2>
+          <p class="victory-subtitle">Outstanding work, puzzle master!</p>
+        </div>
+
+        <div class="victory-stats">
+          <div class="v-stat">
+            <span class="v-stat-val" id="vTime">02:45</span>
+            <span class="v-stat-lbl">Time Taken</span>
+          </div>
+          <div class="v-stat">
+            <span class="v-stat-val" id="vPieces">24</span>
+            <span class="v-stat-lbl">Pieces</span>
+          </div>
+          <div class="v-stat">
+            <span class="v-stat-val" id="vMoves">32</span>
+            <span class="v-stat-lbl">Total Placements</span>
+          </div>
+        </div>
+
+        <div class="victory-image-preview">
+          <img id="victoryPreviewImg" src="" alt="Completed Puzzle">
+        </div>
+
+        <div class="modal-footer victory-actions">
+          <button id="btnPlayAgain" class="btn btn-primary">Replay Puzzle</button>
+          <button id="btnNextGallery" class="btn btn-secondary">Next Image</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/audio.js"></script>
+  <script src="js/gallery.js"></script>
+  <script src="js/jigsaw.js"></script>
+  <script src="js/multiplayer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
