@@ -3,6 +3,15 @@
    ========================================================================== */
 
 const PUZZLE_GALLERY = [
+  // Default Featured Image
+  {
+    id: 'default-signature',
+    category: 'nature',
+    title: 'Featured Signature Puzzle',
+    url: 'BEST_signature.svg',
+    thumb: 'BEST_signature.svg'
+  },
+
   // Nature
   {
     id: 'nature-1',
@@ -123,7 +132,6 @@ class GalleryManager {
   }
 
   init() {
-    // Setup category tab click listeners
     this.tabsEl.forEach(tab => {
       tab.addEventListener('click', (e) => {
         this.tabsEl.forEach(t => t.classList.remove('active'));
@@ -214,7 +222,7 @@ class GalleryManager {
 
   handleFile(file) {
     if (!file.type.startsWith('image/')) {
-      alert('Please upload a valid image file (JPG, PNG, WebP).');
+      alert('Please upload a valid image file (JPG, PNG, WebP, SVG).');
       return;
     }
     const reader = new FileReader();
