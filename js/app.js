@@ -55,6 +55,11 @@ class JigsawApp {
       toast: document.getElementById('toast'),
       toastMessage: document.getElementById('toastMessage'),
 
+      // Welcome Name Modal
+      modalWelcomeName: document.getElementById('modalWelcomeName'),
+      welcomeNameInput: document.getElementById('welcomeNameInput'),
+      btnSubmitWelcomeName: document.getElementById('btnSubmitWelcomeName'),
+
       // Feedback Widget
       btnFeedbackToggle: document.getElementById('btnFeedbackToggle'),
       btnFeedbackClose: document.getElementById('btnFeedbackClose'),
@@ -84,6 +89,7 @@ class JigsawApp {
     // Initialize Multiplayer Engine
     window.multiplayerClient = new MultiplayerClient(this);
     this.setupMultiplayerControls();
+    this.setupWelcomeNameModal();
 
     // Main animation render loop
     const animate = () => {
@@ -132,6 +138,56 @@ class JigsawApp {
     }
   }
 
+  setupWelcomeNameModal() {
+    const savedName = localStorage.getItem('jigsaw_player_name');
+    if (this.dom.welcomeNameInput) {
+      this.dom.welcomeNameInput.value = savedName || '';
+    }
+
+    // Always show prompt on initial visit / join room
+    if (this.dom.modalWelcomeName) {
+      this.dom.modalWelcomeName.classList.remove('hidden');
+      setTimeout(() => {
+        this.dom.welcomeNameInput?.focus();
+      }, 300);
+    }
+
+    const submitName = () => {
+      audioEngine.playClick();
+      const enteredName = this.dom.welcomeNameInput.value.trim() || 'Player 1';
+      if (window.multiplayerClient) {
+        window.multiplayerClient.setPlayerName(enteredName);
+      }
+      this.dom.modalWelcomeName.classList.add('hidden');
+      this.showToast(`Welcome, ${enteredName}! Have fun 🧩`);
+    };
+
+    if (this.dom.btnSubmitWelcomeName) {
+      this.dom.btnSubmitWelcomeName.addEventListener('click', submitName);
+    }
+
+    if (this.dom.welcomeNameInput) {
+      this.dom.welcomeNameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          submitName();
+        }
+      });
+    }
+  }
+
+  promptPlayerNameForNewGame(callback) {
+    if (this.dom.modalWelcomeName) {
+      const savedName = localStorage.getItem('jigsaw_player_name');
+      if (this.dom.welcomeNameInput) {
+        this.dom.welcomeNameInput.value = savedName || '';
+      }
+      this.dom.modalWelcomeName.classList.remove('hidden');
+      setTimeout(() => {
+        this.dom.welcomeNameInput?.focus();
+      }, 300);
+    }
+  }
+
   getDifficultyLabel(cols, rows) {
     const total = cols * rows;
     if (total >= 150) return 'Master';
@@ -147,6 +203,12 @@ class JigsawApp {
     if (window.multiplayerClient && window.multiplayerClient.isConnected && !window.multiplayerClient.isHost) {
       this.showToast('Only the Room Host 👑 can change the puzzle image!');
       return;
+    }
+
+    // Prompt for player name if starting a new session or room
+    const savedName = localStorage.getItem('jigsaw_player_name');
+    if (!savedName && this.dom.modalWelcomeName) {
+      this.dom.modalWelcomeName.classList.remove('hidden');
     }
 
     // Erase old leaderboard when a new game starts
