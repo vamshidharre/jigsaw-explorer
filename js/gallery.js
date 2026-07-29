@@ -3,13 +3,13 @@
    ========================================================================== */
 
 const PUZZLE_GALLERY = [
-  // Default Featured Image
+  // Default Featured Image (PNG with solid white background)
   {
     id: 'default-signature',
     category: 'nature',
     title: 'Featured Signature Puzzle',
-    url: 'BEST_signature.svg',
-    thumb: 'BEST_signature.svg'
+    url: 'default_puzzle.png',
+    thumb: 'default_puzzle.png'
   },
 
   // Nature
