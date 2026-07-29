@@ -46,11 +46,9 @@ function saveFeedback(playerName, text) {
   const name = playerName || 'Anonymous';
   const cleanMessage = text.replace(/[\r\n]+/g, ' ');
 
-  // 1. Single line entry in feedback.txt
   const logLine = `[${timestamp}] [${name}]: ${cleanMessage}\n`;
   fs.appendFileSync(FEEDBACK_TXT, logLine);
 
-  // 2. Structured entry in feedback.json
   const feedbackList = getFeedbacksFromFile();
   const entry = {
     id: Date.now(),
@@ -78,6 +76,18 @@ app.get('/api/feedback', (req, res) => {
 
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.send('No feedback recorded yet.\n');
+});
+
+// GET /api/feedback/clear to wipe the feedback log
+app.get('/api/feedback/clear', (req, res) => {
+  try {
+    fs.writeFileSync(FEEDBACK_FILE, '[]');
+    fs.writeFileSync(FEEDBACK_TXT, '# Jigsaw Explorer Player Feedback Log\n');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send('Feedback log cleared successfully! Future player submissions will appear line-by-line.\n');
+  } catch (e) {
+    res.status(500).send('Error clearing feedback log.\n');
+  }
 });
 
 // POST API Endpoint to submit user feedback
@@ -149,16 +159,27 @@ wss.on('connection', (ws) => {
 
       switch (type) {
         case 'join_room': {
-          const { roomId, playerName, puzzleState } = payload;
-          clientRoomId = roomId;
-          clientId = 'user_' + Math.random().toString(36).substring(2, 9);
+          const { roomId, playerName, puzzleState, maxPlayers } = payload;
 
           let room = rooms.get(roomId);
           const isFirstPlayer = !room;
 
+          // Check if room is full
+          if (room && room.maxPlayers > 0 && room.players.size >= room.maxPlayers) {
+            ws.send(JSON.stringify({
+              type: 'room_full',
+              payload: { maxPlayers: room.maxPlayers }
+            }));
+            return;
+          }
+
+          clientRoomId = roomId;
+          clientId = 'user_' + Math.random().toString(36).substring(2, 9);
+
           if (!room) {
             room = {
               id: roomId,
+              maxPlayers: maxPlayers || 0,
               imageUrl: puzzleState ? puzzleState.imageUrl : '',
               title: puzzleState ? puzzleState.title : 'Shared Puzzle',
               cols: puzzleState ? puzzleState.cols : 6,
@@ -169,6 +190,8 @@ wss.on('connection', (ws) => {
               secondsElapsed: 0
             };
             rooms.set(roomId, room);
+          } else if (maxPlayers && isFirstPlayer) {
+            room.maxPlayers = maxPlayers;
           }
 
           const player = {
@@ -189,6 +212,7 @@ wss.on('connection', (ws) => {
               selfId: clientId,
               isHost: player.isHost,
               color: player.color,
+              maxPlayers: room.maxPlayers,
               imageUrl: room.imageUrl,
               title: room.title,
               cols: room.cols,
@@ -214,6 +238,22 @@ wss.on('connection', (ws) => {
             }
           }, ws);
 
+          break;
+        }
+
+        case 'update_room_capacity': {
+          if (!clientRoomId || !clientId) return;
+          const room = rooms.get(clientRoomId);
+          if (room) {
+            const player = room.players.get(clientId);
+            if (!player || !player.isHost) return;
+
+            room.maxPlayers = payload.maxPlayers || 0;
+            broadcastToRoom(clientRoomId, {
+              type: 'capacity_updated',
+              payload: { maxPlayers: room.maxPlayers }
+            });
+          }
           break;
         }
 

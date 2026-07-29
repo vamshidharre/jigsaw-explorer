@@ -10,6 +10,7 @@ class MultiplayerClient {
     this.selfId = null;
     this.isHost = false;
     this.selfColor = '#6366f1';
+    this.maxPlayers = 4;
     
     const savedName = localStorage.getItem('jigsaw_player_name');
     this.playerName = savedName || ('Player ' + Math.floor(100 + Math.random() * 900));
@@ -75,9 +76,13 @@ class MultiplayerClient {
         pieces: this.serializePieces()
       };
 
+      const selectEl = document.getElementById('maxPlayersSelect');
+      const maxVal = selectEl ? parseInt(selectEl.value, 10) : 4;
+
       this.send('join_room', {
         roomId: this.roomId,
         playerName: this.playerName,
+        maxPlayers: maxVal,
         puzzleState: puzzleState
       });
     };
@@ -119,10 +124,21 @@ class MultiplayerClient {
     const { type, payload } = message;
 
     switch (type) {
+      case 'room_full': {
+        alert(`Sorry, this room is full! (Max ${payload.maxPlayers} players allowed). Returning to single player mode.`);
+        window.history.pushState({}, '', window.location.pathname);
+        if (this.ws) this.ws.close();
+        break;
+      }
+
       case 'room_init': {
         this.selfId = payload.selfId;
         this.isHost = payload.isHost;
         this.selfColor = payload.color;
+        this.maxPlayers = payload.maxPlayers || 0;
+
+        const selectEl = document.getElementById('maxPlayersSelect');
+        if (selectEl) selectEl.value = String(this.maxPlayers);
 
         this.players.clear();
         payload.players.forEach(p => this.players.set(p.id, p));
@@ -137,12 +153,20 @@ class MultiplayerClient {
         break;
       }
 
+      case 'capacity_updated': {
+        this.maxPlayers = payload.maxPlayers;
+        const selectEl = document.getElementById('maxPlayersSelect');
+        if (selectEl) selectEl.value = String(this.maxPlayers);
+        const limitStr = this.maxPlayers > 0 ? `${this.maxPlayers} players` : 'unlimited players';
+        this.app.showToast(`Room capacity set to ${limitStr}`);
+        break;
+      }
+
       case 'player_joined': {
         const { player, players } = payload;
         this.players.clear();
         players.forEach(p => this.players.set(p.id, p));
 
-        // Check if host status was transferred to us
         const self = this.players.get(this.selfId);
         if (self && self.isHost !== this.isHost) {
           this.isHost = self.isHost;
@@ -161,7 +185,6 @@ class MultiplayerClient {
         this.players.clear();
         players.forEach(p => this.players.set(p.id, p));
 
-        // Host migration check
         const self = this.players.get(this.selfId);
         if (self && self.isHost && !this.isHost) {
           this.isHost = true;
@@ -224,13 +247,14 @@ class MultiplayerClient {
     const btnGallery = this.app.dom.btnGallery;
     const btnUpload = this.app.dom.btnUpload;
     const btnDifficulty = this.app.dom.btnDifficulty;
+    const maxPlayersSelect = document.getElementById('maxPlayersSelect');
 
-    // Non-host guests cannot change global game image or difficulty grid
     const isGuest = this.isConnected && !this.isHost;
 
     if (btnGallery) btnGallery.classList.toggle('hidden', isGuest);
     if (btnUpload) btnUpload.classList.toggle('hidden', isGuest);
     if (btnDifficulty) btnDifficulty.classList.toggle('hidden', isGuest);
+    if (maxPlayersSelect) maxPlayersSelect.disabled = isGuest;
   }
 
   sendCursorPosition(worldX, worldY) {

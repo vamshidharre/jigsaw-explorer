@@ -331,6 +331,16 @@ class JigsawApp {
       });
     });
 
+    const maxPlayersSelect = document.getElementById('maxPlayersSelect');
+    if (maxPlayersSelect) {
+      maxPlayersSelect.addEventListener('change', (e) => {
+        const val = parseInt(e.target.value, 10);
+        if (window.multiplayerClient && window.multiplayerClient.isConnected && window.multiplayerClient.isHost) {
+          window.multiplayerClient.send('update_room_capacity', { maxPlayers: val });
+        }
+      });
+    }
+
     const saveNameAction = () => {
       audioEngine.playClick();
       const newName = this.dom.playerNameInput.value.trim();
