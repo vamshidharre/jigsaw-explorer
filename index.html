@@ -53,6 +53,12 @@
           <span id="progressText">0 / 24</span>
         </div>
 
+        <!-- Live Score Counter -->
+        <div class="stat-item score-stat" title="Current Score">
+          <span class="trophy-badge">🏆</span>
+          <span id="scoreDisplay">0 PTS</span>
+        </div>
+
         <div class="progress-bar-wrap" title="Puzzle Progress">
           <div id="progressBar" class="progress-bar-fill" style="width: 0%;"></div>
         </div>
@@ -64,6 +70,11 @@
         <button id="btnShareRoom" class="btn btn-primary" title="Play with friends">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span>Play Together</span>
+        </button>
+
+        <button id="btnLeaderboard" class="btn btn-secondary" title="View High Scores">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+          <span>Leaderboard</span>
         </button>
 
         <button id="btnGallery" class="btn btn-secondary" title="Choose from Image Gallery">
@@ -158,6 +169,35 @@
         </div>
       </div>
     </main>
+
+    <!-- Modal: Leaderboard -->
+    <div id="modalLeaderboard" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card modal-large">
+        <div class="modal-header">
+          <h3>🏆 High Score Leaderboard</h3>
+          <button class="modal-close" data-close="modalLeaderboard">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th>Puzzle</th>
+                <th>Pieces</th>
+                <th>Time</th>
+                <th>Final Score</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardTbody">
+              <!-- Rendered via score.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
     <!-- Modal: Room Share / Multiplayer -->
     <div id="modalRoomShare" class="modal hidden">
@@ -322,9 +362,16 @@
             <span class="v-stat-lbl">Pieces</span>
           </div>
           <div class="v-stat">
-            <span class="v-stat-val" id="vMoves">32</span>
-            <span class="v-stat-lbl">Total Placements</span>
+            <span class="v-stat-val" id="vTotalScore">2,450</span>
+            <span class="v-stat-lbl">Total Points</span>
           </div>
+        </div>
+
+        <!-- Itemized Score Breakdown -->
+        <div class="score-breakdown">
+          <div class="sb-row"><span>Base Snap Score:</span><strong id="sbBase">1,200</strong></div>
+          <div class="sb-row"><span>Speed Bonus:</span><strong id="sbSpeed">+650</strong></div>
+          <div class="sb-row"><span>Difficulty Bonus:</span><strong id="sbDiff">+480</strong></div>
         </div>
 
         <div class="victory-image-preview">
@@ -344,6 +391,7 @@
   <script src="js/audio.js"></script>
   <script src="js/gallery.js"></script>
   <script src="js/jigsaw.js"></script>
+  <script src="js/score.js"></script>
   <script src="js/multiplayer.js"></script>
   <script src="js/app.js"></script>
 </body>

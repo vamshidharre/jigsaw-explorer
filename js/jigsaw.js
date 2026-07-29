@@ -9,24 +9,20 @@ class JigsawPiece {
     this.row = row;
     this.width = width;
     this.height = height;
-    this.edges = edges; // { top, right, bottom, left } (1=tab, -1=hole, 0=flat)
+    this.edges = edges;
     this.targetX = targetX;
     this.targetY = targetY;
-    this.tabMargin = tabMargin; // Extra canvas padding for tabs
+    this.tabMargin = tabMargin;
 
-    // Current position in world space
     this.x = targetX;
     this.y = targetY;
     
-    this.rotation = 0; // 0, 90, 180, 270
+    this.rotation = 0;
     this.isLocked = false;
     this.isEdge = (edges.top === 0 || edges.right === 0 || edges.bottom === 0 || edges.left === 0);
     this.visible = true;
 
-    // Grouping
-    this.group = [this]; // List of pieces connected together
-
-    // Generated vector path
+    this.group = [this];
     this.path = null;
   }
 
@@ -45,38 +41,32 @@ class JigsawEngine {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
 
-    // Puzzle State
     this.cols = 6;
     this.rows = 4;
     this.pieces = [];
     this.image = null;
     
-    // Board Rect
     this.boardX = 0;
     this.boardY = 0;
     this.boardWidth = 0;
     this.boardHeight = 0;
 
-    // Viewport & Pan/Zoom
     this.zoom = 1;
     this.panX = 0;
     this.panY = 0;
 
-    // Settings & Display
     this.ghostOpacity = 0.25;
     this.showGhost = true;
     this.showEdgesOnly = false;
     this.rotationEnabled = false;
-    this.snapTolerance = 18; // px
+    this.snapTolerance = 18;
 
-    // Active Selection / Dragging
     this.activeGroup = null;
     this.dragOffset = { x: 0, y: 0 };
     this.isDragging = false;
     this.isPanning = false;
     this.lastMousePos = { x: 0, y: 0 };
 
-    // Offscreen Canvas Cache
     this.pieceCanvases = new Map();
   }
 
@@ -336,6 +326,11 @@ class JigsawEngine {
     // 4. Remote Player Live Cursors
     this.drawRemoteCursors(ctx);
 
+    // 5. Floating Score Text Animations
+    if (window.app && window.app.scoreEngine) {
+      window.app.scoreEngine.updateFloatingTexts(ctx);
+    }
+
     ctx.restore();
   }
 
@@ -516,10 +511,17 @@ class JigsawEngine {
   }
 
   endDrag() {
-    let result = { type: null, pieceCount: 0 };
+    let result = { type: null, pieceCount: 0, lastX: 0, lastY: 0 };
 
     if (this.isDragging && this.activeGroup) {
-      result = this.checkSnapping(this.activeGroup);
+      const lead = this.activeGroup[0];
+      const res = this.checkSnapping(this.activeGroup);
+      result = {
+        type: res.type,
+        pieceCount: res.pieceCount,
+        lastX: lead.x + lead.width / 2,
+        lastY: lead.y + lead.height / 2
+      };
       this.activeGroup = null;
     }
 
@@ -607,7 +609,7 @@ class JigsawEngine {
     if (this.pieces.length === 0) return false;
     const allLocked = this.pieces.every(p => p.isLocked);
     const allInOneGroup = this.pieces.every(p => p.group && p.group.length === this.pieces.length);
-    
+
     if (allInOneGroup && !allLocked) {
       const lead = this.pieces[0];
       const alignDx = lead.targetX - lead.x;
@@ -622,7 +624,6 @@ class JigsawEngine {
     return allLocked;
   }
 
-  // Connected count calculates pieces that are locked OR joined in a connected group (>1)
   getConnectedCount() {
     return this.pieces.filter(p => p.isLocked || (p.group && p.group.length > 1)).length;
   }

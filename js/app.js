@@ -7,6 +7,7 @@ class JigsawApp {
     this.canvas = document.getElementById('jigsawCanvas');
     this.confettiCanvas = document.getElementById('confettiCanvas');
     this.engine = new JigsawEngine(this.canvas);
+    this.scoreEngine = new ScoreEngine(this);
     this.gallery = null;
 
     // Game Config State
@@ -29,17 +30,21 @@ class JigsawApp {
       timerDisplay: document.getElementById('timerDisplay'),
       progressText: document.getElementById('progressText'),
       progressBar: document.getElementById('progressBar'),
+      scoreDisplay: document.getElementById('scoreDisplay'),
       btnAudioToggle: document.getElementById('btnAudioToggle'),
       iconSoundOn: document.getElementById('iconSoundOn'),
       iconSoundOff: document.getElementById('iconSoundOff'),
       btnGallery: document.getElementById('btnGallery'),
       btnUpload: document.getElementById('btnUpload'),
       btnDifficulty: document.getElementById('btnDifficulty'),
+      btnLeaderboard: document.getElementById('btnLeaderboard'),
       btnShareRoom: document.getElementById('btnShareRoom'),
       modalRoomShare: document.getElementById('modalRoomShare'),
       roomLinkInput: document.getElementById('roomLinkInput'),
       btnCopyRoomLink: document.getElementById('btnCopyRoomLink'),
       playerNameInput: document.getElementById('playerNameInput'),
+      modalLeaderboard: document.getElementById('modalLeaderboard'),
+      leaderboardTbody: document.getElementById('leaderboardTbody'),
       modalGallery: document.getElementById('modalGallery'),
       modalUpload: document.getElementById('modalUpload'),
       modalDifficulty: document.getElementById('modalDifficulty'),
@@ -56,6 +61,7 @@ class JigsawApp {
     this.setupAudioControls();
     this.setupGalleryAndUpload();
     this.setupDifficultyModal();
+    this.setupLeaderboardModal();
     this.setupDockControls();
     this.setupCanvasInteractions();
     this.setupVictoryModal();
@@ -126,6 +132,7 @@ class JigsawApp {
 
     this.resetTimer();
     this.totalMoves = 0;
+    this.scoreEngine.resetScore();
     this.updateProgressUI(0, pieceCount);
 
     const img = new Image();
@@ -181,6 +188,48 @@ class JigsawApp {
       if (window.multiplayerClient) {
         window.multiplayerClient.setPlayerName(e.target.value);
       }
+    });
+  }
+
+  setupLeaderboardModal() {
+    this.dom.btnLeaderboard.addEventListener('click', () => {
+      audioEngine.playClick();
+      this.renderLeaderboard();
+      this.dom.modalLeaderboard.classList.remove('hidden');
+    });
+  }
+
+  renderLeaderboard() {
+    const tbody = this.dom.leaderboardTbody;
+    if (!tbody) return;
+
+    const scores = this.scoreEngine.getHighScores();
+    tbody.innerHTML = '';
+
+    if (scores.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">No high scores recorded yet. Complete a puzzle to claim your rank!</td></tr>`;
+      return;
+    }
+
+    scores.forEach((entry, idx) => {
+      const tr = document.createElement('tr');
+      let rankStr = `${idx + 1}`;
+      if (idx === 0) rankStr = '🥇 1st';
+      else if (idx === 1) rankStr = '🥈 2nd';
+      else if (idx === 2) rankStr = '🥉 3rd';
+
+      const mins = String(Math.floor(entry.time / 60)).padStart(2, '0');
+      const secs = String(entry.time % 60).padStart(2, '0');
+
+      tr.innerHTML = `
+        <td class="rank-pill">${rankStr}</td>
+        <td><strong>${entry.name}</strong></td>
+        <td>${entry.title}</td>
+        <td>${entry.pieces}</td>
+        <td>${mins}:${secs}</td>
+        <td style="color: var(--warning-color); font-weight: 800;">${entry.score.toLocaleString()} PTS</td>
+      `;
+      tbody.appendChild(tr);
     });
   }
 
@@ -352,6 +401,14 @@ class JigsawApp {
           this.showToast('Pieces snapped together!');
         }
 
+        // Add Points & Trigger Canvas Score Animation
+        this.scoreEngine.addSnapPoints(
+          snapResult.type,
+          snapResult.lastX,
+          snapResult.lastY,
+          snapResult.pieceCount
+        );
+
         const connected = this.engine.getConnectedCount();
         const total = this.engine.pieces.length;
         this.updateProgressUI(connected, total);
@@ -403,6 +460,13 @@ class JigsawApp {
         this.totalMoves++;
         if (snapResult.type === 'board') audioEngine.playLock();
         else audioEngine.playSnap();
+
+        this.scoreEngine.addSnapPoints(
+          snapResult.type,
+          snapResult.lastX,
+          snapResult.lastY,
+          snapResult.pieceCount
+        );
 
         const connected = this.engine.getConnectedCount();
         const total = this.engine.pieces.length;
@@ -473,10 +537,28 @@ class JigsawApp {
 
     this.launchConfetti();
 
+    // Calculate final scores
+    const finalCalc = this.scoreEngine.calculateFinalBonus(this.secondsElapsed);
+    
     document.getElementById('vTime').textContent = this.dom.timerDisplay.textContent;
     document.getElementById('vPieces').textContent = this.engine.pieces.length;
-    document.getElementById('vMoves').textContent = this.totalMoves || this.engine.pieces.length;
+    document.getElementById('vTotalScore').textContent = finalCalc.totalFinalScore.toLocaleString();
+
+    document.getElementById('sbBase').textContent = finalCalc.baseScore.toLocaleString();
+    document.getElementById('sbSpeed').textContent = `+${finalCalc.speedBonus.toLocaleString()}`;
+    document.getElementById('sbDiff').textContent = `+${finalCalc.difficultyBonus.toLocaleString()}`;
+
     document.getElementById('victoryPreviewImg').src = this.currentImageUrl;
+
+    // Save to High Score Leaderboard
+    const playerName = window.multiplayerClient ? window.multiplayerClient.playerName : 'Player 1';
+    this.scoreEngine.saveHighScore(
+      playerName,
+      this.currentTitle,
+      this.engine.pieces.length,
+      this.secondsElapsed,
+      finalCalc.totalFinalScore
+    );
 
     setTimeout(() => {
       this.dom.modalVictory.classList.remove('hidden');
