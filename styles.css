@@ -267,6 +267,89 @@ html, body {
   border-radius: 50%;
 }
 
+/* Floating Feedback Widget (Bottom Right) */
+.feedback-widget {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 50;
+}
+
+.feedback-trigger-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--panel-bg-solid);
+  border: 1px solid var(--panel-border-glow);
+  border-radius: var(--radius-full);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+  transition: all var(--transition-fast);
+}
+
+.feedback-trigger-btn svg {
+  width: 16px;
+  height: 16px;
+  color: var(--accent-primary);
+}
+
+.feedback-trigger-btn:hover {
+  background: var(--accent-gradient);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.feedback-trigger-btn:hover svg {
+  color: #fff;
+}
+
+.feedback-box {
+  position: absolute;
+  bottom: 50px;
+  right: 0;
+  width: 290px;
+  background: var(--panel-bg-solid);
+  border: 1px solid var(--panel-border-glow);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  padding: 14px;
+  animation: modalPop 0.25s ease;
+  z-index: 55;
+}
+
+.feedback-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-main);
+}
+
+.feedback-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.feedback-close-btn:hover {
+  color: #fff;
+}
+
+.feedback-body p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
 /* Button Base */
 .btn {
   display: inline-flex;
@@ -1069,5 +1152,10 @@ html, body {
 
   .dock-label {
     display: none;
+  }
+
+  .feedback-widget {
+    bottom: 80px;
+    right: 16px;
   }
 }

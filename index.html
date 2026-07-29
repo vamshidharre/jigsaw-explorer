@@ -118,7 +118,7 @@
         </div>
       </div>
 
-      <!-- Floating Dock Toolbar -->
+      <!-- Floating Bottom Dock Toolbar -->
       <div class="floating-dock">
         <div class="dock-group">
           <button id="btnZoomIn" class="dock-btn" title="Zoom In">
@@ -170,13 +170,36 @@
       </div>
     </main>
 
+    <!-- Floating Feedback Widget (Bottom Right) -->
+    <div class="feedback-widget">
+      <button id="btnFeedbackToggle" class="feedback-trigger-btn" title="Send Feedback">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Feedback</span>
+      </button>
+
+      <div id="feedbackBox" class="feedback-box hidden">
+        <div class="feedback-header">
+          <span>💬 Send Feedback</span>
+          <button id="btnFeedbackClose" class="feedback-close-btn">&times;</button>
+        </div>
+        <div class="feedback-body">
+          <p>Have suggestions or found a bug? Send us a quick note!</p>
+          <textarea id="feedbackText" placeholder="Type your feedback here..." rows="3" class="text-input" style="width: 100%; resize: none; margin-bottom: 8px;"></textarea>
+          <button id="btnSendFeedback" class="btn btn-primary w-full">Submit Feedback</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal: Leaderboard -->
     <div id="modalLeaderboard" class="modal hidden">
       <div class="modal-backdrop"></div>
       <div class="modal-card modal-large">
         <div class="modal-header">
           <h3>🏆 High Score Leaderboard</h3>
-          <button class="modal-close" data-close="modalLeaderboard">&times;</button>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="btnClearLeaderboard" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;">Clear Scores</button>
+            <button class="modal-close" data-close="modalLeaderboard">&times;</button>
+          </div>
         </div>
 
         <div class="modal-body">

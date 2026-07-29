@@ -4,13 +4,29 @@
 
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const { Server: WebSocketServer } = require('ws');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const FEEDBACK_FILE = path.join(__dirname, 'feedback.json');
 
+app.use(express.json());
 app.use(express.static(path.join(__dirname)));
+
+// API Endpoint to read all submitted user feedback
+app.get('/api/feedback', (req, res) => {
+  if (fs.existsSync(FEEDBACK_FILE)) {
+    try {
+      const data = fs.readFileSync(FEEDBACK_FILE, 'utf8');
+      return res.json(JSON.parse(data));
+    } catch (e) {
+      return res.json([]);
+    }
+  }
+  res.json([]);
+});
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
@@ -57,6 +73,28 @@ function getSanitizedPlayers(room) {
     });
   });
   return result;
+}
+
+function saveFeedback(playerName, text) {
+  let feedbackList = [];
+  if (fs.existsSync(FEEDBACK_FILE)) {
+    try {
+      feedbackList = JSON.parse(fs.readFileSync(FEEDBACK_FILE, 'utf8'));
+    } catch (e) {
+      feedbackList = [];
+    }
+  }
+
+  const entry = {
+    id: Date.now(),
+    timestamp: new Date().toISOString(),
+    name: playerName || 'Anonymous',
+    message: text
+  };
+
+  feedbackList.push(entry);
+  fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(feedbackList, null, 2));
+  console.log(`[FEEDBACK] Received from ${entry.name}: "${text}"`);
 }
 
 wss.on('connection', (ws) => {
@@ -198,7 +236,6 @@ wss.on('connection', (ws) => {
           if (!clientRoomId) return;
           const room = rooms.get(clientRoomId);
           if (room) {
-            // Only host can reset puzzle
             const player = room.players.get(clientId);
             if (!player || !player.isHost) return;
 
@@ -223,6 +260,18 @@ wss.on('connection', (ws) => {
           }
           break;
         }
+
+        case 'submit_feedback': {
+          const { playerName, text } = payload;
+          if (text && text.trim()) {
+            saveFeedback(playerName, text.trim());
+            ws.send(JSON.stringify({
+              type: 'feedback_response',
+              payload: { success: true }
+            }));
+          }
+          break;
+        }
       }
     } catch (err) {
       console.error('Error handling WebSocket message:', err);
@@ -241,7 +290,6 @@ wss.on('connection', (ws) => {
         if (room.players.size === 0) {
           rooms.delete(clientRoomId);
         } else {
-          // If host left, promote the next player to host
           if (wasHost) {
             const nextHostKey = room.players.keys().next().value;
             const newHost = room.players.get(nextHostKey);

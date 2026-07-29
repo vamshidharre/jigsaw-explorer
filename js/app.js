@@ -38,6 +38,7 @@ class JigsawApp {
       btnUpload: document.getElementById('btnUpload'),
       btnDifficulty: document.getElementById('btnDifficulty'),
       btnLeaderboard: document.getElementById('btnLeaderboard'),
+      btnClearLeaderboard: document.getElementById('btnClearLeaderboard'),
       btnShareRoom: document.getElementById('btnShareRoom'),
       modalRoomShare: document.getElementById('modalRoomShare'),
       roomLinkInput: document.getElementById('roomLinkInput'),
@@ -52,7 +53,14 @@ class JigsawApp {
       modalDifficulty: document.getElementById('modalDifficulty'),
       modalVictory: document.getElementById('modalVictory'),
       toast: document.getElementById('toast'),
-      toastMessage: document.getElementById('toastMessage')
+      toastMessage: document.getElementById('toastMessage'),
+
+      // Feedback Widget
+      btnFeedbackToggle: document.getElementById('btnFeedbackToggle'),
+      btnFeedbackClose: document.getElementById('btnFeedbackClose'),
+      btnSendFeedback: document.getElementById('btnSendFeedback'),
+      feedbackBox: document.getElementById('feedbackBox'),
+      feedbackText: document.getElementById('feedbackText')
     };
 
     this.init();
@@ -67,6 +75,7 @@ class JigsawApp {
     this.setupDockControls();
     this.setupCanvasInteractions();
     this.setupVictoryModal();
+    this.setupFeedbackWidget();
 
     // Start with default puzzle
     this.startNewGame(this.currentImageUrl, this.currentTitle, 6, 4);
@@ -127,6 +136,9 @@ class JigsawApp {
       return;
     }
 
+    // Erase old leaderboard when a new game starts
+    this.scoreEngine.clearHighScores();
+
     this.currentImageUrl = imageUrl;
     this.currentTitle = title;
     this.cols = cols;
@@ -158,6 +170,49 @@ class JigsawApp {
     img.onerror = () => {
       alert('Failed to load puzzle image. Please try another image.');
     };
+  }
+
+  setupFeedbackWidget() {
+    if (this.dom.btnFeedbackToggle) {
+      this.dom.btnFeedbackToggle.addEventListener('click', () => {
+        audioEngine.playClick();
+        this.dom.feedbackBox.classList.toggle('hidden');
+      });
+    }
+
+    if (this.dom.btnFeedbackClose) {
+      this.dom.btnFeedbackClose.addEventListener('click', () => {
+        this.dom.feedbackBox.classList.add('hidden');
+      });
+    }
+
+    if (this.dom.btnSendFeedback) {
+      this.dom.btnSendFeedback.addEventListener('click', () => {
+        const text = this.dom.feedbackText.value.trim();
+        if (!text) {
+          alert('Please enter your feedback message.');
+          return;
+        }
+
+        audioEngine.playClick();
+        const playerName = window.multiplayerClient ? window.multiplayerClient.playerName : 'Player 1';
+
+        if (window.multiplayerClient && window.multiplayerClient.isConnected) {
+          window.multiplayerClient.send('submit_feedback', { playerName, text });
+        } else {
+          // Fallback HTTP submission to server
+          fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ playerName, message: text })
+          }).catch(() => {});
+        }
+
+        this.dom.feedbackText.value = '';
+        this.dom.feedbackBox.classList.add('hidden');
+        this.showToast('Thank you! Your feedback has been sent 💬');
+      });
+    }
   }
 
   setupMultiplayerControls() {
@@ -224,6 +279,15 @@ class JigsawApp {
       this.renderLeaderboard(this.dom.leaderboardTbody);
       this.dom.modalLeaderboard.classList.remove('hidden');
     });
+
+    if (this.dom.btnClearLeaderboard) {
+      this.dom.btnClearLeaderboard.addEventListener('click', () => {
+        audioEngine.playClick();
+        this.scoreEngine.clearHighScores();
+        this.renderLeaderboard(this.dom.leaderboardTbody);
+        this.showToast('Leaderboard scores cleared.');
+      });
+    }
   }
 
   renderLeaderboard(tbodyTarget, activeEntryId = null) {
@@ -233,7 +297,7 @@ class JigsawApp {
     tbodyTarget.innerHTML = '';
 
     if (scores.length === 0) {
-      tbodyTarget.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">No high scores recorded yet. Complete a puzzle to claim your rank!</td></tr>`;
+      tbodyTarget.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">No high scores recorded for this session. Complete a puzzle to claim your rank!</td></tr>`;
       return;
     }
 
@@ -585,11 +649,9 @@ class JigsawApp {
       finalCalc.totalFinalScore
     );
 
-    // Find new entry ID to highlight on victory scoreboard
     const lastSaved = updatedScores.find(s => s.score === finalCalc.totalFinalScore && s.name === playerName);
     const newEntryId = lastSaved ? lastSaved.id : null;
 
-    // Render embedded Leaderboard on Victory Modal
     this.renderLeaderboard(this.dom.victoryLeaderboardTbody, newEntryId);
 
     setTimeout(() => {
