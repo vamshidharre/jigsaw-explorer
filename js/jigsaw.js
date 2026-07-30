@@ -30,6 +30,8 @@ class JigsawPiece {
     if (!this.visible) return false;
     ctx.save();
     ctx.translate(this.x, this.y);
+    // Mirror the transform drawPiece() uses, otherwise a rotated piece is not
+    // clickable where it is actually drawn.
     if (this.rotation !== 0) {
       ctx.translate(this.width / 2, this.height / 2);
       ctx.rotate((this.rotation * Math.PI) / 180);
@@ -110,42 +112,28 @@ class JigsawEngine {
     this.boardY = Math.round((vh - this.boardHeight) / 2);
   }
 
-  // Pseudo-random deterministic generator for organic piece shape variations
-  pseudoRandom(seed) {
-    const x = Math.sin(seed++) * 10000;
-    return x - Math.floor(x);
-  }
-
   generatePieces() {
     this.pieces = [];
     const pw = this.boardWidth / this.cols;
     const ph = this.boardHeight / this.rows;
-    const tabMargin = Math.max(pw, ph) * 0.4;
+    const tabMargin = Math.max(pw, ph) * 0.35;
 
-    const horizEdges = Array.from({ length: this.rows - 1 }, (_, r) => 
-      Array.from({ length: this.cols }, (_, c) => {
-        const val = this.pseudoRandom(r * 100 + c) < 0.5 ? 1 : -1;
-        const seed = r * 37 + c * 17 + 101;
-        return { dir: val, seed: seed };
-      })
+    const horizEdges = Array.from({ length: this.rows - 1 }, () => 
+      Array.from({ length: this.cols }, () => Math.random() < 0.5 ? 1 : -1)
     );
 
-    const vertEdges = Array.from({ length: this.rows }, (_, r) => 
-      Array.from({ length: this.cols - 1 }, (_, c) => {
-        const val = this.pseudoRandom(r * 200 + c + 50) < 0.5 ? 1 : -1;
-        const seed = r * 53 + c * 29 + 203;
-        return { dir: val, seed: seed };
-      })
+    const vertEdges = Array.from({ length: this.rows }, () => 
+      Array.from({ length: this.cols - 1 }, () => Math.random() < 0.5 ? 1 : -1)
     );
 
     let id = 0;
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
         const edges = {
-          top: r === 0 ? { dir: 0 } : { dir: -horizEdges[r - 1][c].dir, seed: horizEdges[r - 1][c].seed },
-          right: c === this.cols - 1 ? { dir: 0 } : vertEdges[r][c],
-          bottom: r === this.rows - 1 ? { dir: 0 } : horizEdges[r][c],
-          left: c === 0 ? { dir: 0 } : { dir: -vertEdges[r][c - 1].dir, seed: vertEdges[r][c - 1].seed }
+          top: r === 0 ? 0 : -horizEdges[r - 1][c],
+          right: c === this.cols - 1 ? 0 : vertEdges[r][c],
+          bottom: r === this.rows - 1 ? 0 : horizEdges[r][c],
+          left: c === 0 ? 0 : -vertEdges[r][c - 1]
         };
 
         const targetX = this.boardX + c * pw;
@@ -165,16 +153,16 @@ class JigsawEngine {
     const path = new Path2D();
     path.moveTo(0, 0);
 
-    this.drawJigsawEdge(path, 0, 0, w, 0, edges.top.dir, edges.top.seed || 1);
-    this.drawJigsawEdge(path, w, 0, w, h, edges.right.dir, edges.right.seed || 2);
-    this.drawJigsawEdge(path, w, h, 0, h, edges.bottom.dir, edges.bottom.seed || 3);
-    this.drawJigsawEdge(path, 0, h, 0, 0, edges.left.dir, edges.left.seed || 4);
+    this.drawJigsawEdge(path, 0, 0, w, 0, edges.top);
+    this.drawJigsawEdge(path, w, 0, w, h, edges.right);
+    this.drawJigsawEdge(path, w, h, 0, h, edges.bottom);
+    this.drawJigsawEdge(path, 0, h, 0, 0, edges.left);
 
     path.closePath();
     return path;
   }
 
-  drawJigsawEdge(path, x1, y1, x2, y2, tabDir, seed = 0) {
+  drawJigsawEdge(path, x1, y1, x2, y2, tabDir) {
     if (tabDir === 0) {
       path.lineTo(x2, y2);
       return;
@@ -187,96 +175,51 @@ class JigsawEngine {
     const ux = dx / len;
     const uy = dy / len;
 
-    // Normal vector pointing outwards or inwards depending on tabDir
     const nx = -uy * tabDir;
     const ny = ux * tabDir;
 
-    // Organic random variations per edge
-    const r1 = this.pseudoRandom(seed + 1) * 0.08 - 0.04; // Position shift (-4% to +4%)
-    const r2 = this.pseudoRandom(seed + 2) * 0.12 - 0.06; // Size variation (-6% to +6%)
-    const r3 = this.pseudoRandom(seed + 3) * 0.1 - 0.05;   // Neck width variation
+    const tabSize = len * 0.2;
+    const neckW = len * 0.1;
+    const headW = len * 0.18;
 
-    const midPos = 0.5 + r1;
-    const tabHeight = len * (0.22 + r2);  // Deep, classic tab protrusion
-    const neckWidth = len * (0.11 + r3);  // Narrow interlocking waist
-    const headWidth = len * (0.23 + r2);  // Bulbous round head
+    const p1x = x1 + ux * (len * 0.38 - neckW);
+    const p1y = y1 + uy * (len * 0.38 - neckW);
 
-    // Key points along the edge line (parallel component)
-    const baseP1 = midPos - 0.18;
-    const baseP2 = midPos + 0.18;
+    const p2x = x1 + ux * (len * 0.38);
+    const p2y = y1 + uy * (len * 0.38);
 
-    const p1x = x1 + ux * (len * baseP1);
-    const p1y = y1 + uy * (len * baseP1);
+    const p3x = x1 + ux * (len * 0.5 - headW) + nx * tabSize;
+    const p3y = y1 + uy * (len * 0.5 - headW) + ny * tabSize;
 
-    const p6x = x1 + ux * (len * baseP2);
-    const p6y = y1 + uy * (len * baseP2);
+    const p4x = x1 + ux * (len * 0.5 + headW) + nx * tabSize;
+    const p4y = y1 + uy * (len * 0.5 + headW) + ny * tabSize;
 
-    // Neck waist points
-    const neck1x = x1 + ux * (len * (midPos - neckWidth / 2));
-    const neck1y = y1 + uy * (len * (midPos - neckWidth / 2));
+    const p5x = x1 + ux * (len * 0.62);
+    const p5y = y1 + uy * (len * 0.62);
 
-    const neck2x = x1 + ux * (len * (midPos + neckWidth / 2));
-    const neck2y = y1 + uy * (len * (midPos + neckWidth / 2));
+    const p6x = x1 + ux * (len * 0.62 + neckW);
+    const p6y = y1 + uy * (len * 0.62 + neckW);
 
-    // Bulbous head crown points
-    const headLeftX = x1 + ux * (len * (midPos - headWidth / 2)) + nx * tabHeight;
-    const headLeftY = y1 + uy * (len * (midPos - headWidth / 2)) + ny * tabHeight;
-
-    const headRightX = x1 + ux * (len * (midPos + headWidth / 2)) + nx * tabHeight;
-    const headRightY = y1 + uy * (len * (midPos + headWidth / 2)) + ny * tabHeight;
-
-    const crownX = x1 + ux * (len * midPos) + nx * (tabHeight * 1.15);
-    const crownY = y1 + uy * (len * midPos) + ny * (tabHeight * 1.15);
-
-    // 1. Straight line to shoulder 1
     path.lineTo(p1x, p1y);
 
-    // 2. Smooth curve into narrow neck waist
     path.bezierCurveTo(
-      p1x + ux * (len * 0.05) + nx * (tabHeight * 0.05),
-      p1y + uy * (len * 0.05) + ny * (tabHeight * 0.05),
-      neck1x - nx * (tabHeight * 0.1),
-      neck1y - ny * (tabHeight * 0.1),
-      neck1x, neck1y
+      p2x + nx * (tabSize * 0.2), p2y + ny * (tabSize * 0.2),
+      p3x - ux * (headW * 0.5), p3y - ny * (tabSize * 0.2),
+      p3x, p3y
     );
 
-    // 3. Smooth curve out from neck to left side of bulbous head
     path.bezierCurveTo(
-      neck1x + nx * (tabHeight * 0.5) - ux * (headWidth * 0.4),
-      neck1y + ny * (tabHeight * 0.5) - uy * (headWidth * 0.4),
-      headLeftX - ux * (headWidth * 0.2),
-      headLeftY - ny * (tabHeight * 0.1),
-      headLeftX, headLeftY
+      p3x + ux * (headW * 0.8) + nx * (tabSize * 0.4), p3y + ny * (tabSize * 0.4),
+      p4x - ux * (headW * 0.8) + nx * (tabSize * 0.4), p4y + ny * (tabSize * 0.4),
+      p4x, p4y
     );
 
-    // 4. Smooth round crown over top of bulbous head
     path.bezierCurveTo(
-      headLeftX + ux * (headWidth * 0.4) + nx * (tabHeight * 0.25),
-      headLeftY + uy * (headWidth * 0.4) + ny * (tabHeight * 0.25),
-      headRightX - ux * (headWidth * 0.4) + nx * (tabHeight * 0.25),
-      headRightY - uy * (headWidth * 0.4) + ny * (tabHeight * 0.25),
-      headRightX, headRightY
-    );
-
-    // 5. Smooth curve from right side of bulbous head into right neck waist
-    path.bezierCurveTo(
-      headRightX + ux * (headWidth * 0.2),
-      headRightY - ny * (tabHeight * 0.1),
-      neck2x + nx * (tabHeight * 0.5) + ux * (headWidth * 0.4),
-      neck2y + ny * (tabHeight * 0.5) + uy * (headWidth * 0.4),
-      neck2x, neck2y
-    );
-
-    // 6. Smooth curve from right neck waist to shoulder 2
-    path.bezierCurveTo(
-      neck2x - nx * (tabHeight * 0.1),
-      neck2y - ny * (tabHeight * 0.1),
-      p6x - ux * (len * 0.05) + nx * (tabHeight * 0.05),
-      p6y - uy * (len * 0.05) + ny * (tabHeight * 0.05),
+      p4x + ux * (headW * 0.5), p4y - ny * (tabSize * 0.2),
+      p5x + nx * (tabSize * 0.2), p5y + ny * (tabSize * 0.2),
       p6x, p6y
     );
 
-    // 7. Straight line to end corner
     path.lineTo(x2, y2);
   }
 
@@ -289,7 +232,6 @@ class JigsawEngine {
 
     octx.translate(margin, margin);
 
-    // 1. Clip piece image
     octx.save();
     octx.clip(piece.path);
 
@@ -307,28 +249,14 @@ class JigsawEngine {
       0, 0, piece.width, piece.height
     );
 
-    // 2. Realistic 3D Cardboard Inner Shadow & Bevel Shading
-    octx.save();
-    octx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-    octx.shadowBlur = 6;
-    octx.shadowOffsetX = -2;
-    octx.shadowOffsetY = -2;
-    octx.compositeOperation = 'source-over';
-    octx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
-    octx.lineWidth = 3;
-    octx.stroke(piece.path);
     octx.restore();
 
-    octx.restore();
-
-    // 3. Crisp 3D Bevel Edge Strokes (Top-Left Highlight & Bottom-Right Shadow)
     octx.save();
-    octx.lineWidth = 2.2;
-    octx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    octx.lineWidth = 2.5;
+    octx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
     octx.stroke(piece.path);
-
-    octx.lineWidth = 1.6;
-    octx.strokeStyle = 'rgba(15, 23, 42, 0.6)';
+    octx.lineWidth = 1.5;
+    octx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
     octx.stroke(piece.path);
     octx.restore();
 
@@ -640,6 +568,8 @@ class JigsawEngine {
           const isNeighbor = (Math.abs(p.col - other.col) + Math.abs(p.row - other.row)) === 1;
 
           if (isNeighbor && p.rotation === other.rotation) {
+            // Both pieces share a rotation, so the solved offset between them is
+            // rotated by the same amount. At rotation 0 this is a no-op.
             const rad = (p.rotation * Math.PI) / 180;
             const cos = Math.cos(rad);
             const sin = Math.sin(rad);
