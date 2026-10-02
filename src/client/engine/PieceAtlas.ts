@@ -32,6 +32,35 @@ const PAGE_SIZE = 2048;
 const PAD = 3;
 
 type Canvas = HTMLCanvasElement;
+/** Atlas pages start as canvases and are frozen into ImageBitmaps, which draw several times faster. */
+export type Texture = HTMLCanvasElement | ImageBitmap;
+
+async function freeze(textures: Texture[]): Promise<Texture[]> {
+  if (typeof createImageBitmap !== 'function') return textures;
+  return Promise.all(
+    textures.map(async (t) => {
+      if (!(t instanceof HTMLCanvasElement)) return t;
+      try {
+        const bmp = await createImageBitmap(t);
+        t.width = 0;
+        t.height = 0;
+        return bmp;
+      } catch {
+        return t;
+      }
+    }),
+  );
+}
+
+function release(t: Texture): void {
+  if (t instanceof HTMLCanvasElement) {
+    // Shrinking canvases releases their backing memory promptly on all browsers.
+    t.width = 0;
+    t.height = 0;
+  } else {
+    t.close();
+  }
+}
 
 function createCanvas(w: number, h: number): Canvas {
   const c = document.createElement('canvas');
@@ -101,11 +130,12 @@ export class PieceAtlas {
   readonly paths: Path2D[];
   readonly sprites: Sprite[] = [];
   readonly shadows: Sprite[] = [];
-  pages: Canvas[] = [];
-  shadowPages: Canvas[] = [];
+  pages: Texture[] = [];
+  shadowPages: Texture[] = [];
   /** Atlas pixels per world unit. */
   scale = 1;
-  private shadowScale = 0.5;
+  /** Shadow atlas pixels per world unit. */
+  shadowScale = 0.5;
   private readonly glowCache = new Map<string, Canvas>();
 
   private constructor(
@@ -161,7 +191,7 @@ export class PieceAtlas {
     this.pages = Array.from({ length: packer.pages }, (_, i) =>
       createCanvas(PAGE_SIZE, i === packer.pages - 1 ? Math.max(1, lastPageH) : PAGE_SIZE),
     );
-    const ctxs = this.pages.map((p) => p.getContext('2d')!);
+    const ctxs = (this.pages as Canvas[]).map((p) => p.getContext('2d')!);
 
     // Shadow atlas at lower resolution; blur hides the lower detail.
     this.shadowScale = withShadows ? Math.max(0.05, Math.min(scale * 0.5, 96 / pieceSize)) : this.shadowScale;
@@ -183,7 +213,7 @@ export class PieceAtlas {
       this.shadowPages = Array.from({ length: shadowPacker.pages }, (_, i) =>
         createCanvas(PAGE_SIZE, i === shadowPacker.pages - 1 ? Math.max(1, lastH) : PAGE_SIZE),
       );
-      shadowCtxs = this.shadowPages.map((p) => p.getContext('2d')!);
+      shadowCtxs = (this.shadowPages as Canvas[]).map((p) => p.getContext('2d')!);
     }
 
     const bevelWidth = Math.max(1.2, pieceSize * scale * 0.028);
@@ -227,14 +257,16 @@ export class PieceAtlas {
         );
       }
       if (style.bevel) {
-        const lw = bevelWidth / scale;
-        ctx.lineWidth = lw * 2;
+        // Emboss inside the clip: a stroke shifted down-right leaves a light band only along the
+        // top-left edges; one shifted up-left leaves a dark band only along the bottom-right edges.
+        const d = bevelWidth / scale / 2;
+        ctx.lineWidth = d * 2;
         ctx.lineJoin = 'round';
-        ctx.translate(-lw * 0.5, -lw * 0.5);
-        ctx.strokeStyle = 'rgba(255,255,255,0.38)';
+        ctx.translate(d, d);
+        ctx.strokeStyle = 'rgba(255,255,255,0.30)';
         ctx.stroke(path);
-        ctx.translate(lw, lw);
-        ctx.strokeStyle = 'rgba(0,0,0,0.30)';
+        ctx.translate(-2 * d, -2 * d);
+        ctx.strokeStyle = 'rgba(0,0,0,0.26)';
         ctx.stroke(path);
       }
       ctx.restore();
@@ -297,6 +329,8 @@ export class PieceAtlas {
         lastYield = performance.now();
       }
     }
+    this.pages = await freeze(this.pages);
+    if (withShadows) this.shadowPages = await freeze(this.shadowPages);
     onProgress?.(1);
   }
 
@@ -320,20 +354,13 @@ export class PieceAtlas {
   }
 
   dispose(): void {
-    // Shrinking canvases releases their backing memory promptly on all browsers.
-    for (const p of this.pages) {
-      p.width = 0;
-      p.height = 0;
-    }
+    for (const p of this.pages) release(p);
     this.pages = [];
     this.glowCache.clear();
   }
 
   disposeShadows(): void {
-    for (const p of this.shadowPages) {
-      p.width = 0;
-      p.height = 0;
-    }
+    for (const p of this.shadowPages) release(p);
     this.shadowPages = [];
   }
 }

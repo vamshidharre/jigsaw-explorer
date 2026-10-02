@@ -99,10 +99,16 @@ export function GameView(props: GameViewProps) {
   eventsRef.current = props.events;
   const tableClass = `table-${useSettings((s) => s.table)}`;
 
+  const overlayWrapRef = useRef<HTMLDivElement>(null);
   const insets = useCallback(() => {
     const top = topRef.current?.getBoundingClientRect().height ?? 0;
     const bottom = bottomRef.current?.getBoundingClientRect().height ?? 0;
-    return { top: top + 8, bottom: bottom + 16 };
+    // Cards anchored to the bottom (e.g. the completion summary) also take space away from the view.
+    let card = 0;
+    overlayWrapRef.current?.querySelectorAll<HTMLElement>('[data-bottom-card]').forEach((el) => {
+      card = Math.max(card, window.innerHeight - el.getBoundingClientRect().top);
+    });
+    return { top: top + 8, bottom: Math.max(bottom + 16, card + 12) };
   }, []);
 
   // Build (and tear down) the engine whenever the puzzle changes.
@@ -211,8 +217,9 @@ export function GameView(props: GameViewProps) {
     const ro = new ResizeObserver(update);
     if (topRef.current) ro.observe(topRef.current);
     if (bottomRef.current) ro.observe(bottomRef.current);
+    overlayWrapRef.current?.querySelectorAll('[data-bottom-card]').forEach((el) => ro.observe(el));
     return () => ro.disconnect();
-  }, [insets, build.state]);
+  }, [insets, build.state, props.overlay]);
 
   // Global shortcuts while the game screen is shown.
   const settings = useSettings();
@@ -445,7 +452,9 @@ export function GameView(props: GameViewProps) {
         </div>
       )}
 
-      {build.state === 'ready' && props.overlay}
+      <div ref={overlayWrapRef} className="game__cards">
+        {build.state === 'ready' && props.overlay}
+      </div>
     </div>
   );
 }

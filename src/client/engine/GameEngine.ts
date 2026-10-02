@@ -181,8 +181,10 @@ export class GameEngine implements InputTarget {
       onProgress: opts.onProgress,
       signal: opts.signal,
     });
+    // Lay the pieces out for the area actually visible between the top bar and the toolbar.
     const parent = opts.canvas.parentElement;
-    const aspect = parent && parent.clientHeight > 0 ? parent.clientWidth / parent.clientHeight : 1.6;
+    const usableH = parent ? parent.clientHeight - (opts.insets?.top ?? 0) - (opts.insets?.bottom ?? 0) : 0;
+    const aspect = parent && usableH > 0 ? parent.clientWidth / usableH : 1.6;
     const model = opts.groups ? new PuzzleModel(opts.spec, opts.groups) : PuzzleModel.createInitial(opts.spec, aspect);
     const engine = new GameEngine(opts, atlas, model);
     engine.lastLayoutAspect = aspect;
@@ -201,7 +203,7 @@ export class GameEngine implements InputTarget {
     this.cursors.clear();
     this.atlas.dispose();
     this.atlas.disposeShadows();
-    this.renderer.resetBoardLayer();
+    this.renderer.dispose();
   }
 
   // ---------------------------------------------------------------------------
@@ -283,6 +285,8 @@ export class GameEngine implements InputTarget {
     this.insets = insets;
     this.updateZoomLimits();
     this.emitZoom();
+    // Keep the finished picture framed when the summary card appears or goes away.
+    if (this.completed) this.fitBoard(true);
   }
 
   panBy(dx: number, dy: number): void {
@@ -311,6 +315,7 @@ export class GameEngine implements InputTarget {
     });
     this.renderer.theme = next.theme;
     this.renderer.selectionColor = next.selectionColor;
+    this.renderer.invalidate();
     if (prev.outline !== next.outline || prev.bevel !== next.bevel) void this.restyle();
     if (prev.edgesOnly !== next.edgesOnly && next.edgesOnly && this.selected !== null) {
       const g = this.model.groups.get(this.selected);
@@ -726,8 +731,8 @@ export class GameEngine implements InputTarget {
   /** Re-scatters loose single pieces around the board. */
   scatter(): void {
     if (!this.canInteract()) return;
-    const parent = this.canvas.parentElement;
-    const aspect = parent && parent.clientHeight ? parent.clientWidth / parent.clientHeight : this.lastLayoutAspect;
+    const usableH = this.camera.viewHeight - this.insets.top - this.insets.bottom;
+    const aspect = usableH > 0 ? this.camera.viewWidth / usableH : this.lastLayoutAspect;
     if (this.net) {
       this.net.send({ t: 'scatter', aspect });
       return;
@@ -1068,6 +1073,18 @@ export class GameEngine implements InputTarget {
       }
     }
     return null;
+  }
+
+  /** Effective rendering/gameplay configuration, for automated tests. */
+  debugSettings() {
+    return {
+      atlasStyle: this.atlas.style,
+      render: { ...this.renderer.options },
+      snapStrength: this.settings.snapStrength,
+      reducedMotion: this.settings.reducedMotion,
+      autoPan: this.settings.autoPan,
+      tableFill: this.settings.theme.boardFill,
+    };
   }
 
   wire(): WireGroup[] {

@@ -30,7 +30,7 @@ export function CompletionCard({
 }) {
   const totalPlaced = players?.reduce((s, p) => s + p.placed, 0) ?? 0;
   return (
-    <section className="completion" role="dialog" aria-modal="false" aria-labelledby="completion-title">
+    <section className="completion" role="region" aria-labelledby="completion-title" data-bottom-card>
       <div className="completion__card">
         <IconButton label="Hide summary" size="sm" className="completion__close" onClick={onDismiss} tooltipSide="left">
           <X />

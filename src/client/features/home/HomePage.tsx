@@ -54,7 +54,7 @@ export function HomePage() {
             seed={11}
             lifted={[
               { piece: 4, dx: featured.width * 0.1, dy: -featured.height * 0.17, rotate: 9 },
-              { piece: 12, dx: -featured.width * 0.24, dy: featured.height * 0.04, rotate: -8 },
+              { piece: 12, dx: -featured.width * 0.11, dy: featured.height * 0.05, rotate: -8 },
               { piece: 21, dx: featured.width * 0.03, dy: featured.height * 0.26, rotate: 6 },
             ]}
           />

@@ -86,7 +86,7 @@ function SetupContent({ target, mode, onDone }: { target: SetupTarget; mode: Set
     const g = gridForPieceCount(Math.min(p.pieces, maxPieces), info.width, info.height);
     return { ...p, grid: g, count: g.cols * g.rows, available: p.pieces <= maxPieces * 1.15 };
   });
-  const defaultPreset = presets.find((p) => p.id === last.preset && p.available) ? last.preset : 'medium';
+  const defaultPreset = last.preset === 'custom' || presets.some((p) => p.id === last.preset && p.available) ? last.preset : 'medium';
   const [preset, setPreset] = useState<string>(defaultPreset);
   const [custom, setCustom] = useState(Math.min(maxPieces, Math.max(MIN_PIECES, last.custom)));
   const [rotation, setRotation] = useState(last.rotation);

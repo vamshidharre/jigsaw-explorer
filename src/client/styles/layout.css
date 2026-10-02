@@ -549,17 +549,6 @@
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
 }
 
-@media (max-width: 680px) {
-  .setup,
-  .setup--portrait {
-    grid-template-columns: 1fr;
-  }
-  .setup__preview {
-    max-height: 34dvh;
-    justify-self: center;
-  }
-}
-
 .setup__preview {
   position: relative;
   margin: 0;
@@ -581,6 +570,17 @@
 
 .setup__preview img.is-loaded {
   opacity: 1;
+}
+
+@media (max-width: 680px) {
+  .setup,
+  .setup--portrait {
+    grid-template-columns: 1fr;
+  }
+  .setup .setup__preview {
+    max-height: 30dvh;
+    justify-self: center;
+  }
 }
 
 .setup__preview figcaption {
@@ -1465,6 +1465,16 @@
   color: #fff;
 }
 
+/* Hide the toolbar behind the completion summary. */
+.game:has(.completion) .game-toolbar {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 12px);
+  transition:
+    opacity var(--dur) ease,
+    transform var(--dur) ease;
+}
+
 /* Loading / error / pause / banners */
 .game-loading {
   position: absolute;
@@ -2031,6 +2041,34 @@
 @media (max-width: 380px) {
   .game-toolbar .btn--icon {
     width: 38px;
+  }
+}
+
+/* Phones in landscape: every vertical pixel counts. */
+@media (max-height: 500px) {
+  .game-top {
+    top: max(4px, env(safe-area-inset-top));
+    padding: 2px 4px;
+    border-radius: var(--radius);
+  }
+  .game-top .btn--icon {
+    width: 34px;
+    height: 34px;
+  }
+  .game-top__title p {
+    display: none;
+  }
+  .game-toolbar {
+    bottom: max(4px, env(safe-area-inset-bottom));
+    padding: 2px;
+    border-radius: var(--radius);
+  }
+  .game-toolbar .btn--icon {
+    width: 38px;
+    height: 36px;
+  }
+  .conn-banner {
+    top: 52px;
   }
 }
 
