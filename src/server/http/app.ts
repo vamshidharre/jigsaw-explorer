@@ -36,7 +36,8 @@ export function createApp(opts: AppOptions) {
           'font-src': ["'self'", 'data:'],
           'worker-src': ["'self'", 'blob:'],
           'script-src': ["'self'"],
-          'upgrade-insecure-requests': opts.isProduction ? [] : null,
+          // All URLs are relative; leave scheme upgrades to the TLS terminator so plain-HTTP self-hosting works.
+          'upgrade-insecure-requests': null,
         },
       },
       crossOriginEmbedderPolicy: false,
@@ -140,8 +141,8 @@ export function createApp(opts: AppOptions) {
       express.static(path.join(opts.publicDir, 'assets'), { immutable: true, maxAge: '1y', index: false, fallthrough: false }),
     );
     app.use(
-      '/puzzles',
-      express.static(path.join(opts.publicDir, 'puzzles'), { maxAge: '7d', index: false, fallthrough: false }),
+      '/gallery',
+      express.static(path.join(opts.publicDir, 'gallery'), { maxAge: '7d', index: false, redirect: false, fallthrough: false }),
     );
     app.use(express.static(opts.publicDir, { index: false, maxAge: '1h' }));
     // Single-page app: unknown paths render the client, which shows its own 404.

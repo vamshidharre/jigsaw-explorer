@@ -11,7 +11,7 @@ import sharp from 'sharp';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const cacheArg = process.argv.indexOf('--cache');
 const cacheDir = cacheArg > -1 ? path.resolve(process.argv[cacheArg + 1]) : path.join(root, 'data', 'image-cache');
-const outDir = path.join(root, 'public', 'puzzles');
+const outDir = path.join(root, 'public', 'gallery');
 
 const FULL_MAX = 2400;
 const THUMB_MAX = 480;

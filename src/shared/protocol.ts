@@ -48,7 +48,7 @@ export type ImageRef =
 export const UPLOAD_ID_PATTERN = /^u[a-z0-9]{20}$/;
 
 export function imageRefUrl(ref: ImageRef): string {
-  return ref.kind === 'catalog' ? `/puzzles/${ref.id}.webp` : `/api/images/${ref.id}`;
+  return ref.kind === 'catalog' ? `/gallery/${ref.id}.webp` : `/api/images/${ref.id}`;
 }
 
 export interface PuzzleInfo {

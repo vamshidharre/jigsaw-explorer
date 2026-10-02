@@ -32,11 +32,11 @@ export function getCatalogImage(id: string): CatalogImage | undefined {
 }
 
 export function catalogImageUrl(id: string): string {
-  return `/puzzles/${id}.webp`;
+  return `/gallery/${id}.webp`;
 }
 
 export function catalogThumbUrl(id: string): string {
-  return `/puzzles/${id}-thumb.webp`;
+  return `/gallery/${id}-thumb.webp`;
 }
 
 export const FEATURED_IMAGE_ID = 'starry-night';

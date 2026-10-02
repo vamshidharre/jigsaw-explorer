@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-density="comfortable" data-motion="system">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Jigsaw Explorer — Online jigsaw puzzles, solo or together</title>
+    <meta name="description" content="Beautiful online jigsaw puzzles. Play solo or solve together with friends in real time — any piece count, your own photos, no sign-up." />
+    <meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e0f11" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta property="og:title" content="Jigsaw Explorer" />
+    <meta property="og:description" content="Online jigsaw puzzles — solo or together in real time." />
+    <meta property="og:type" content="website" />
+    <!-- Applies the saved theme before first paint (external file to satisfy the CSP). -->
+    <script src="/theme-init.js"></script>
+  </head>
+  <body>
+    <noscript>Jigsaw Explorer needs JavaScript to run.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/client/main.tsx"></script>
+  </body>
+</html>

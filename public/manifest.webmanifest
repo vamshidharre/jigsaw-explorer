@@ -1,0 +1,10 @@
+{
+  "name": "Jigsaw Explorer",
+  "short_name": "Jigsaw",
+  "description": "Online jigsaw puzzles, solo or together in real time.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e0f11",
+  "theme_color": "#0e7a6d",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

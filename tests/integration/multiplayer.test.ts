@@ -31,9 +31,9 @@ describe('rooms over HTTP', () => {
     const { code } = await createRoom(server.url);
     const res = await fetch(`${server.url}/api/rooms/${code}`);
     expect(res.status).toBe(200);
-    const summary = await res.json();
+    const summary = (await res.json()) as Record<string, number | string | boolean>;
     expect(summary).toMatchObject({ code, title: 'The Starry Night', players: 0, full: false });
-    expect(summary.pieces).toBeGreaterThanOrEqual(10);
+    expect(summary.pieces as number).toBeGreaterThanOrEqual(10);
   });
 
   it('rejects invalid room settings and unknown images', async () => {
@@ -212,7 +212,7 @@ describe('multiplayer session', () => {
     const a = await join(code, 'A');
     const errors = a.c.waitFor('error', (m) => m.code === 'BAD_REQUEST');
     a.c.ws.send('not json');
-    a.c.send({ t: 'move', g: 'x' });
+    a.c.send({ t: 'move', g: 'x' } as Record<string, unknown>);
     a.c.send({ t: 'drop', g: 1, x: Infinity });
     await errors;
     const g = modelFrom(a.welcome).groupOf(0).id;
@@ -289,7 +289,7 @@ describe('uploads', () => {
     const png = await sharp({ create: { width: 900, height: 600, channels: 3, background: '#3a7' } }).png().toBuffer();
     const res = await fetch(`${server.url}/api/uploads`, { method: 'POST', headers: { 'content-type': 'image/png' }, body: png });
     expect(res.status).toBe(201);
-    const meta = await res.json();
+    const meta = (await res.json()) as { id: string; width: number; height: number };
     expect(meta).toMatchObject({ width: 900, height: 600 });
     const img = await fetch(`${server.url}/api/images/${meta.id}`);
     expect(img.status).toBe(200);
