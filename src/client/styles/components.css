@@ -712,17 +712,38 @@
 }
 
 /* ---------------------------------------------------------------- Toasts (sonner) */
-[data-sonner-toaster] {
+/* Sonner injects its stylesheet at runtime, so these selectors are deliberately more specific. */
+:root [data-sonner-toaster][data-sonner-theme] {
   --normal-bg: var(--surface);
   --normal-text: var(--text);
   --normal-border: var(--border);
+  --width: 320px;
   font-family: var(--font-sans);
 }
 
-[data-sonner-toast] {
-  border-radius: var(--radius) !important;
-  box-shadow: var(--shadow-md) !important;
-  font-size: 0.9rem !important;
+/* Compact, unobtrusive toasts that hug their text. */
+:root [data-sonner-toast][data-styled='true'].toast {
+  width: auto;
+  max-width: var(--width);
+  padding: 10px 14px;
+  gap: 8px;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  font-size: 0.875rem;
+  font-weight: 540;
+}
+
+:root [data-sonner-toast][data-styled='true'].toast:has([data-button]),
+:root [data-sonner-toast][data-styled='true'].toast[data-type='error'] {
+  border-radius: var(--radius);
+}
+
+:root [data-sonner-toast][data-styled='true'].toast [data-button] {
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
 }
 
 /* ---------------------------------------------------------------- Keyframes */

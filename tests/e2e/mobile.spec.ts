@@ -65,6 +65,21 @@ test('touch: drag a piece into place, pinch to zoom, double-tap to zoom', async 
   const after = await debugPiece(page, 0);
   expect(Math.round(after.screen[0] - before.screen[0])).toBe(-80);
 
+  // Double-tap on empty table zooms in.
+  const empty = await page.evaluate(() => {
+    const e = (window as unknown as { __jigsaw: { engine: { hitTest(x: number, y: number, t: string): number | null } } }).__jigsaw.engine;
+    for (let y = 200; y < 600; y += 20) for (let x = 20; x < 380; x += 20) if (e.hitTest(x, y, 'touch') === null) return [x, y];
+    return null;
+  });
+  expect(empty).not.toBeNull();
+  const zBeforeTap = await zoom(page);
+  for (let i = 0; i < 2; i++) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: empty![0], y: empty![1], id: 1 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(60);
+  }
+  expect(await zoom(page)).toBeCloseTo(zBeforeTap * 1.6, 1);
+
   // Fit button resets the view.
   await page.getByRole('button', { name: 'Fit board' }).click();
   await page.waitForTimeout(500);

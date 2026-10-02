@@ -281,7 +281,8 @@ export class Room {
 
     this.emptySince = null;
     this.touch(now);
-    this.updateClock(now);
+    // The joining player learns the clock from the welcome; everyone else gets a clock update.
+    this.updateClock(now, player.id);
 
     conn.send({
       t: 'welcome',
@@ -610,15 +611,15 @@ export class Room {
     return PLAYER_COLORS.find((c) => !used.has(c)) ?? PLAYER_COLORS[this.players.size % PLAYER_COLORS.length]!;
   }
 
-  private updateClock(now: number): void {
+  private updateClock(now: number, exceptPlayerId?: string): void {
     const shouldRun = this.onlineCount > 0 && !this.completion;
     if (shouldRun && this.clockSince === null) {
       this.clockSince = now;
-      this.broadcast({ t: 'clock', clock: this.clockInfo() });
+      this.broadcast({ t: 'clock', clock: this.clockInfo() }, exceptPlayerId);
     } else if (!shouldRun && this.clockSince !== null) {
       this.clockAccumulated += now - this.clockSince;
       this.clockSince = null;
-      this.broadcast({ t: 'clock', clock: this.clockInfo() });
+      this.broadcast({ t: 'clock', clock: this.clockInfo() }, exceptPlayerId);
     }
   }
 

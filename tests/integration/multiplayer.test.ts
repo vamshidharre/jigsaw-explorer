@@ -310,3 +310,68 @@ describe('uploads', () => {
     expect((await fetch(`${server.url}/api/images/../../etc/passwd`)).status).toBe(404);
   });
 });
+
+describe('expiry and cleanup', () => {
+  it('expires rooms that stay empty and keeps rooms with players', async () => {
+    await server.cleanup();
+    server = await launch(undefined, { roomEmptyTtlMs: 300, reconnectGraceMs: 100 });
+    const empty = await createRoom(server.url);
+    const busy = await createRoom(server.url);
+    const p = await join(busy.code, 'Stayer');
+    await sleep(450);
+    await server.rooms.sweep();
+    expect((await fetch(`${server.url}/api/rooms/${empty.code}`)).status).toBe(404);
+    expect((await fetch(`${server.url}/api/rooms/${busy.code}`)).status).toBe(200);
+    // Joining an expired room fails cleanly.
+    const late = await TestClient.connect(server.url);
+    const err = late.waitFor('error');
+    late.hello(empty.code, 'Late');
+    expect((await err).code).toBe('ROOM_NOT_FOUND');
+    // Once the last player leaves, the room also expires after the TTL.
+    p.c.send({ t: 'leave' });
+    await sleep(450);
+    await server.rooms.sweep();
+    expect((await fetch(`${server.url}/api/rooms/${busy.code}`)).status).toBe(404);
+  });
+
+  it('deletes old uploads that no room uses, but keeps ones in use', async () => {
+    const png = await sharp({ create: { width: 400, height: 300, channels: 3, background: '#a63' } }).png().toBuffer();
+    const upload = async () =>
+      (await (await fetch(`${server.url}/api/uploads`, { method: 'POST', headers: { 'content-type': 'image/png' }, body: png })).json()) as { id: string };
+    const unused = await upload();
+    const used = await upload();
+    await createRoom(server.url, { image: { kind: 'upload', id: used.id }, pieces: 12 });
+    const removed = await server.uploads.cleanup(0, server.rooms.uploadsInUse());
+    expect(removed).toBe(1);
+    expect((await fetch(`${server.url}/api/images/${unused.id}`)).status).toBe(404);
+    expect((await fetch(`${server.url}/api/images/${used.id}`)).status).toBe(200);
+  });
+
+  it('rate limits room creation per client', async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 22; i++) {
+      const res = await fetch(`${server.url}/api/rooms`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ image: { kind: 'catalog', id: 'starry-night' }, pieces: 12, rotation: false, capacity: 4, aspect: 1.6 }),
+      });
+      statuses.push(res.status);
+    }
+    expect(statuses.filter((s) => s === 201)).toHaveLength(20);
+    expect(statuses.at(-1)).toBe(429);
+  });
+});
+
+describe('protocol ordering', () => {
+  it('sends welcome as the very first message', async () => {
+    const { code } = await createRoom(server.url);
+    const c = await TestClient.connect(server.url);
+    const welcome = c.waitFor('welcome');
+    c.hello(code, 'First');
+    await welcome;
+    expect(c.messages[0]!.t).toBe('welcome');
+    const w = c.messages[0] as Extract<(typeof c.messages)[number], { t: 'welcome' }>;
+    expect(w.clock.running).toBe(true);
+    c.close();
+  });
+});

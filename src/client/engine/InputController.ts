@@ -103,7 +103,7 @@ export class InputController {
   private onDown = (e: PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 1 && e.button !== 2) return;
     const [x, y] = this.local(e);
-    this.el.focus({ preventScroll: true });
+    // The browser focuses the (tabindex) canvas on press by itself, without showing a keyboard focus ring.
 
     if (e.button === 2) {
       // Right click rotates the piece under the cursor (or the one being dragged).

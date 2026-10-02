@@ -85,18 +85,7 @@ test('two players see each other and every move in real time', async ({ browser 
   await bob.keyboard.press('0');
   // She then puts it in its place so it does not cover other pieces.
   await dragPieceHome(alice, 3);
-  try {
-    await expect.poll(() => debugPiece(bob, 3).then((d) => d.locked), { timeout: 4000 }).toBe(true);
-  } catch (err) {
-    const dump = async (pg: typeof alice) =>
-      pg.evaluate(() => {
-        const e = (window as unknown as { __jigsaw: { engine: { model: { groupOf(p: number): unknown }; heldByOthers: Map<number, string> } } }).__jigsaw.engine;
-        return JSON.stringify({ g: e.model.groupOf(3), held: [...e.heldByOthers] });
-      });
-    console.log('ALICE', await dump(alice), await debugPiece(alice, 3));
-    console.log('BOB', await dump(bob), await debugPiece(bob, 3));
-    throw err;
-  }
+  await expect.poll(() => debugPiece(bob, 3).then((d) => d.locked)).toBe(true);
 
   // Alice places piece 0 on the board; Bob sees it locked.
   await dragPieceHome(alice, 0);

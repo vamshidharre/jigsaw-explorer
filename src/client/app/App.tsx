@@ -57,12 +57,13 @@ export function App() {
         </ErrorBoundary>
         <Toaster
           theme={appearance.theme}
-          position="bottom-center"
-          offset={96}
-          mobileOffset={{ bottom: 96 }}
+          position="top-left"
+          offset={{ top: 80, left: 16 }}
+          mobileOffset={{ top: 108, left: 12, right: 12 }}
           visibleToasts={3}
           duration={2600}
           closeButton={false}
+          toastOptions={{ className: 'toast' }}
         />
         <div ref={liveRef} className="visually-hidden" aria-live="polite" aria-atomic="true" />
       </Tooltip.Provider>

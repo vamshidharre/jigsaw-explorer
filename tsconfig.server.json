@@ -13,5 +13,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["src/server", "src/shared", "tests/unit", "tests/integration", "vite.config.ts", "playwright.config.ts", "tests/e2e"]
+  "include": ["src/server", "src/shared", "tests/unit", "tests/integration", "vite.config.ts"]
 }
