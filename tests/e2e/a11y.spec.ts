@@ -3,6 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { prepare, startSolo, waitForEngine } from './helpers';
 
 async function audit(page: Page, label: string, include?: string) {
+  // Colour contrast is only meaningful once open/close animations have settled.
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity));
   let builder = new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']);
   if (include) builder = builder.include(include);
   const results = await builder.analyze();

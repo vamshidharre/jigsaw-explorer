@@ -1,0 +1,24 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: jigsaw-explorer
+    runtime: node
+    # A persistent disk (below) requires a paid instance type. Without it the app
+    # still works, but rooms and uploaded photos are lost on every deploy/restart.
+    plan: starter
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "1"
+      - key: DATA_DIR
+        value: /var/data
+      - key: NODE_VERSION
+        value: "22"
+    disk:
+      name: jigsaw-data
+      mountPath: /var/data
+      sizeGB: 1

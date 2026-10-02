@@ -67,7 +67,7 @@
   --btn-bg: var(--danger-soft);
   --btn-fg: var(--danger);
   --btn-border: transparent;
-  --btn-bg-hover: rgba(201, 58, 50, 0.16);
+  --btn-bg-hover: color-mix(in srgb, var(--danger) 16%, transparent);
 }
 
 .btn--sm {
