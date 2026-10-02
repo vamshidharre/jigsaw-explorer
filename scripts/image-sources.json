@@ -1,0 +1,186 @@
+[
+  {
+    "id": "alpine-peaks",
+    "title": "Alpine Peaks at Dusk",
+    "category": "landscapes",
+    "url": "https://raw.githubusercontent.com/vercel/next.js/canary/examples/image-component/public/mountains.jpg",
+    "credit": "Unsplash photo, via the vercel/next.js example assets",
+    "license": "Unsplash License"
+  },
+  {
+    "id": "autumn-avenue",
+    "title": "Autumn Avenue",
+    "category": "landscapes",
+    "url": "https://raw.githubusercontent.com/nolimits4web/swiper/master/demos/images/nature-4.jpg",
+    "credit": "Swiper demo asset (nolimits4web/swiper)",
+    "license": "Distributed with an MIT-licensed project; original source not documented"
+  },
+  {
+    "id": "golden-hour-lake",
+    "title": "Golden Hour Lake",
+    "category": "landscapes",
+    "url": "https://raw.githubusercontent.com/nolimits4web/swiper/master/demos/images/nature-2.jpg",
+    "credit": "Swiper demo asset (nolimits4web/swiper)",
+    "license": "Distributed with an MIT-licensed project; original source not documented"
+  },
+  {
+    "id": "misty-shoreline",
+    "title": "Misty Shoreline",
+    "category": "landscapes",
+    "url": "https://raw.githubusercontent.com/nolimits4web/swiper/master/demos/images/nature-3.jpg",
+    "credit": "Swiper demo asset (nolimits4web/swiper)",
+    "license": "Distributed with an MIT-licensed project; original source not documented"
+  },
+  {
+    "id": "palm-sunrise",
+    "title": "Palm Beach Sunrise",
+    "category": "landscapes",
+    "url": "https://raw.githubusercontent.com/nolimits4web/swiper/master/demos/images/nature-5.jpg",
+    "credit": "Swiper demo asset (nolimits4web/swiper)",
+    "license": "Distributed with an MIT-licensed project; original source not documented"
+  },
+  {
+    "id": "autumn-canopy",
+    "title": "Autumn Canopy",
+    "category": "landscapes",
+    "url": "https://raw.githubusercontent.com/nolimits4web/swiper/master/demos/images/nature-8.jpg",
+    "credit": "Swiper demo asset (nolimits4web/swiper)",
+    "license": "Distributed with an MIT-licensed project; original source not documented"
+  },
+  {
+    "id": "highland-lake",
+    "title": "Highland Lake",
+    "category": "landscapes",
+    "url": "https://raw.githubusercontent.com/fengyuanchen/viewerjs/main/docs/images/tibet-1.jpg",
+    "credit": "Viewer.js documentation photo (fengyuanchen/viewerjs)",
+    "license": "Distributed with an MIT-licensed project; original source not documented"
+  },
+  {
+    "id": "pug-portrait",
+    "title": "Pug Portrait",
+    "category": "up-close",
+    "url": "https://raw.githubusercontent.com/vercel/next.js/canary/examples/image-component/public/dog.jpg",
+    "credit": "Unsplash photo, via the vercel/next.js example assets",
+    "license": "Unsplash License"
+  },
+  {
+    "id": "tabby-gaze",
+    "title": "Tabby Gaze",
+    "category": "up-close",
+    "url": "https://raw.githubusercontent.com/vercel/next.js/canary/examples/image-component/public/cat.jpg",
+    "credit": "Unsplash photo, via the vercel/next.js example assets",
+    "license": "Unsplash License"
+  },
+  {
+    "id": "pansy-garden",
+    "title": "Pansy Garden",
+    "category": "up-close",
+    "url": "https://raw.githubusercontent.com/nolimits4web/swiper/master/demos/images/nature-6.jpg",
+    "credit": "Swiper demo asset (nolimits4web/swiper)",
+    "license": "Distributed with an MIT-licensed project; original source not documented"
+  },
+  {
+    "id": "orchid-bloom",
+    "title": "Orchid Bloom",
+    "category": "up-close",
+    "url": "https://raw.githubusercontent.com/nolimits4web/swiper/master/demos/images/nature-7.jpg",
+    "credit": "Swiper demo asset (nolimits4web/swiper)",
+    "license": "Distributed with an MIT-licensed project; original source not documented"
+  },
+  {
+    "id": "grass-bridge",
+    "title": "Grass Bridge",
+    "category": "up-close",
+    "url": "https://raw.githubusercontent.com/nolimits4web/swiper/master/demos/images/nature-1.jpg",
+    "credit": "Swiper demo asset (nolimits4web/swiper)",
+    "license": "Distributed with an MIT-licensed project; original source not documented"
+  },
+  {
+    "id": "water-crown",
+    "title": "Water Crown",
+    "category": "up-close",
+    "url": "https://raw.githubusercontent.com/nolimits4web/swiper/master/demos/images/nature-10.jpg",
+    "credit": "Swiper demo asset (nolimits4web/swiper)",
+    "license": "Distributed with an MIT-licensed project; original source not documented"
+  },
+  {
+    "id": "potala-palace",
+    "title": "Potala Palace",
+    "category": "places",
+    "url": "https://raw.githubusercontent.com/fengyuanchen/viewerjs/main/docs/images/tibet-4.jpg",
+    "credit": "Viewer.js documentation photo (fengyuanchen/viewerjs)",
+    "license": "Distributed with an MIT-licensed project; original source not documented"
+  },
+  {
+    "id": "golden-rooftops",
+    "title": "Golden Rooftops",
+    "category": "places",
+    "url": "https://raw.githubusercontent.com/fengyuanchen/viewerjs/main/docs/images/tibet-3.jpg",
+    "credit": "Viewer.js documentation photo (fengyuanchen/viewerjs)",
+    "license": "Distributed with an MIT-licensed project; original source not documented"
+  },
+  {
+    "id": "river-promenade",
+    "title": "River Promenade",
+    "category": "places",
+    "url": "https://raw.githubusercontent.com/fengyuanchen/viewerjs/main/docs/images/tibet-7.jpg",
+    "credit": "Viewer.js documentation photo (fengyuanchen/viewerjs)",
+    "license": "Distributed with an MIT-licensed project; original source not documented"
+  },
+  {
+    "id": "blue-marble",
+    "title": "Blue Marble",
+    "category": "places",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/land_ocean_ice_cloud_2048.jpg",
+    "credit": "NASA Visible Earth, via the three.js example textures",
+    "license": "Public domain (NASA)"
+  },
+  {
+    "id": "starry-night",
+    "title": "The Starry Night",
+    "category": "fine-art",
+    "url": "https://raw.githubusercontent.com/jcjohnson/neural-style/master/examples/inputs/starry_night.jpg",
+    "credit": "Vincent van Gogh, 1889",
+    "license": "Public domain"
+  },
+  {
+    "id": "great-wave",
+    "title": "The Great Wave off Kanagawa",
+    "category": "fine-art",
+    "url": "https://raw.githubusercontent.com/lengstrom/fast-style-transfer/master/examples/style/wave.jpg",
+    "credit": "Katsushika Hokusai, c. 1831",
+    "license": "Public domain"
+  },
+  {
+    "id": "the-scream",
+    "title": "The Scream",
+    "category": "fine-art",
+    "url": "https://raw.githubusercontent.com/jcjohnson/neural-style/master/examples/inputs/the_scream.jpg",
+    "credit": "Edvard Munch, 1893",
+    "license": "Public domain"
+  },
+  {
+    "id": "minotaur-shipwreck",
+    "title": "The Shipwreck of the Minotaur",
+    "category": "fine-art",
+    "url": "https://raw.githubusercontent.com/jcjohnson/neural-style/master/examples/inputs/shipwreck.jpg",
+    "credit": "J. M. W. Turner, c. 1810",
+    "license": "Public domain"
+  },
+  {
+    "id": "basket-of-fruit",
+    "title": "Basket of Fruit",
+    "category": "fine-art",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/758px-Canestra_di_frutta_(Caravaggio).jpg",
+    "credit": "Caravaggio, c. 1599",
+    "license": "Public domain"
+  },
+  {
+    "id": "fluid-pastels",
+    "title": "Fluid Pastels",
+    "category": "fine-art",
+    "url": "https://raw.githubusercontent.com/withastro/astro/main/examples/portfolio/public/assets/stock-1.jpg",
+    "credit": "Unsplash photo, via the withastro/astro example assets",
+    "license": "Unsplash License"
+  }
+]

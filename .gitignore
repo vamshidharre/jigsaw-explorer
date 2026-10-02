@@ -1,3 +1,10 @@
 node_modules/
+dist/
+data/
 .DS_Store
 *.log
+test-results/
+playwright-report/
+coverage/
+.env
+.env.*
