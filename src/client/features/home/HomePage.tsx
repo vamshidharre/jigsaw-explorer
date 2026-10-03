@@ -95,7 +95,9 @@ export function HomePage() {
         <div className="feature">
           <ImageIcon className="feature__icon" aria-hidden="true" />
           <h3>Your own photos</h3>
-          <p>Turn any picture into a puzzle. Solo puzzles from your photos stay on your device.</p>
+          <p>
+            Turn any picture into a puzzle, or send one as a gift. <Link to="/create">Make a photo puzzle</Link>
+          </p>
         </div>
         <div className="feature">
           <Puzzle className="feature__icon" aria-hidden="true" />

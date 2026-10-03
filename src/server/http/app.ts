@@ -77,6 +77,16 @@ export function createApp(opts: AppOptions) {
       strictTransportSecurity: opts.isProduction,
     }),
   );
+  // Embedded puzzles may be shown in iframes on any site; every other page keeps frame-ancestors 'self'.
+  app.use((req, res, next) => {
+    const embedded = req.path.startsWith('/embed/') || (req.path.startsWith('/play/') && req.query.embed === '1');
+    if (embedded) {
+      res.removeHeader('X-Frame-Options');
+      const csp = res.getHeader('Content-Security-Policy');
+      if (typeof csp === 'string') res.setHeader('Content-Security-Policy', csp.replace(/frame-ancestors [^;]*/, 'frame-ancestors *'));
+    }
+    next();
+  });
   app.use(compression());
 
   const createLimiter = new WindowRateLimiter(20, 10 * 60_000);

@@ -9,6 +9,8 @@ import { HomePage } from '../features/home/HomePage';
 import { LibraryPage } from '../features/library/LibraryPage';
 import { PuzzlePage } from '../features/library/PuzzlePage';
 import { DailyPage } from '../features/daily/DailyPage';
+import { CreatePage } from '../features/create/CreatePage';
+import { EmbedPage } from '../features/embed/EmbedPage';
 import { MultiplayerPage } from '../features/multiplayer/MultiplayerPage';
 import { CreditsPage, NotFoundPage } from '../features/home/StaticPages';
 import { SettingsPanel } from '../features/settings/SettingsPanel';
@@ -53,6 +55,8 @@ export function App() {
               <Route path="/puzzles" element={<LibraryPage />} />
               <Route path="/puzzle/:id" element={<PuzzlePage />} />
               <Route path="/daily" element={<DailyPage />} />
+              <Route path="/create" element={<CreatePage />} />
+              <Route path="/embed/:id" element={<EmbedPage />} />
               <Route path="/multiplayer" element={<MultiplayerPage />} />
               <Route path="/play/:gameId" element={<PlayPage />} />
               <Route path="/room/:code" element={<RoomPage />} />

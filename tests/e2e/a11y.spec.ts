@@ -21,7 +21,7 @@ for (const theme of ['light', 'dark'] as const) {
     });
 
     test('site pages', async ({ page }) => {
-      for (const path of ['/', '/puzzles', '/multiplayer', '/daily', '/puzzle/great-wave', '/stats', '/credits', '/s/abcdefghij', '/nope']) {
+      for (const path of ['/', '/puzzles', '/multiplayer', '/daily', '/create', '/puzzle/great-wave', '/stats', '/credits', '/s/abcdefghij', '/nope']) {
         await page.goto(path);
         await page.waitForTimeout(300);
         await audit(page, path);

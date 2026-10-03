@@ -325,3 +325,29 @@ describe('hosting defaults', () => {
     }
   });
 });
+
+describe('photo maker and embeds', () => {
+  beforeEach(() => start());
+
+  it('describes the photo puzzle maker and lists it in the sitemap', async () => {
+    const { html } = await page('/create');
+    expect(html).toContain('<title>Make a jigsaw puzzle from your photo — Jigbee</title>');
+    expect(await (await fetch(`${server.url}/sitemap.xml`)).text()).toContain('/create</loc>');
+  });
+
+  it('lets only embedded puzzles be framed by other sites', async () => {
+    const normal = await fetch(`${server.url}/puzzle/great-wave`);
+    expect(normal.headers.get('x-frame-options')).toBe('SAMEORIGIN');
+    expect(normal.headers.get('content-security-policy')).toContain("frame-ancestors 'self'");
+    for (const p of ['/embed/great-wave?pieces=24', '/play/embed-great-wave-6x4?embed=1']) {
+      const res = await fetch(`${server.url}${p}`);
+      expect(res.headers.get('x-frame-options')).toBeNull();
+      expect(res.headers.get('content-security-policy')).toContain('frame-ancestors *');
+    }
+    const play = await fetch(`${server.url}/play/some-game`);
+    expect(play.headers.get('x-frame-options')).toBe('SAMEORIGIN');
+    const embedPage = await page('/embed/great-wave');
+    expect(meta(embedPage.html, 'robots')).toBe('noindex');
+    expect((await page('/embed/not-a-picture')).status).toBe(404);
+  });
+});

@@ -58,6 +58,7 @@ export function SiteFooter() {
         <nav aria-label="Footer">
           <Link to="/daily">Daily puzzle</Link>
           <Link to="/puzzles">All puzzles</Link>
+          <Link to="/create">Make your own</Link>
           <Link to="/credits">Image credits</Link>
         </nav>
       </div>

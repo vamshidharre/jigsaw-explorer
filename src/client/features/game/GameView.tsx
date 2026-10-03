@@ -26,6 +26,7 @@ import { GameEngine, type EngineEvents, type NetworkLink } from '../../engine/Ga
 import { Button, IconButton } from '../../components/ui/Button';
 import { Slider, Switch } from '../../components/ui/Controls';
 import { StateScreen } from '../../components/layout/PageLoader';
+import { LogoMark } from '../../components/layout/SiteHeader';
 import { announce } from '../../app/announcer';
 import { useUi } from '../../app/uiStore';
 import { formatDuration } from '../../lib/format';
@@ -64,7 +65,8 @@ interface GameViewProps {
   title: string;
   subtitle: string;
   imageUrl: string;
-  backTo: { href: string; label: string };
+  /** Top-left link. `newTab` (embedded puzzles) opens the site in a new tab and shows the logo instead of a back arrow. */
+  backTo: { href: string; label: string; newTab?: boolean };
   timer: TimerSource;
   interactive: boolean;
   completed: boolean;
@@ -302,9 +304,15 @@ export function GameView(props: GameViewProps) {
 
       <header ref={topRef} className="game-top">
         <div className="game-top__left">
-          <Link to={props.backTo.href} className="btn btn--ghost btn--icon game-top__back" aria-label={props.backTo.label}>
-            <ArrowLeft />
-          </Link>
+          {props.backTo.newTab ? (
+            <a href={props.backTo.href} target="_blank" rel="noopener" className="btn btn--ghost btn--icon game-top__back" aria-label={props.backTo.label}>
+              <LogoMark size={26} />
+            </a>
+          ) : (
+            <Link to={props.backTo.href} className="btn btn--ghost btn--icon game-top__back" aria-label={props.backTo.label}>
+              <ArrowLeft />
+            </Link>
+          )}
           <div className="game-top__title">
             <h1>{props.title}</h1>
             <p>{props.subtitle}</p>
@@ -441,9 +449,15 @@ export function GameView(props: GameViewProps) {
                 >
                   Try again
                 </Button>
-                <Link className="btn" to={props.backTo.href}>
-                  {props.backTo.label}
-                </Link>
+                {props.backTo.newTab ? (
+                  <a className="btn" href={props.backTo.href} target="_blank" rel="noopener">
+                    {props.backTo.label}
+                  </a>
+                ) : (
+                  <Link className="btn" to={props.backTo.href}>
+                    {props.backTo.label}
+                  </Link>
+                )}
               </>
             }
           >

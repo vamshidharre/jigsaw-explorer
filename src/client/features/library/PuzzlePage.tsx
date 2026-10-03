@@ -9,6 +9,7 @@ import { PuzzleCard } from '../../components/PuzzleCard';
 import { Button } from '../../components/ui/Button';
 import { useUi } from '../../app/uiStore';
 import { NotFoundPage } from '../home/StaticPages';
+import { EmbedCode } from '../embed/EmbedCode';
 
 /** A page per gallery picture: something to link to and for search engines to find. */
 export function PuzzlePage() {
@@ -76,6 +77,7 @@ export function PuzzlePage() {
               <dd>{image.license.split(';')[0]}</dd>
             </div>
           </dl>
+          <EmbedCode image={image} />
         </div>
       </section>
 

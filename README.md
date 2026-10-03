@@ -46,6 +46,10 @@ every move is arbitrated on the server and broadcast to everyone in the room.
 - Preview images (1200×630) are rendered on the server: the picture with jigsaw cuts and one lifted piece (blurred for gifts).
 - One page per gallery picture (`/puzzle/:id`), `sitemap.xml` and `robots.txt`. Rooms, shares and saved games are marked `noindex`.
 
+**Photo puzzle maker and embeds**
+- `/create` is a landing page for people searching for a way to turn a photo into a puzzle: choose or drop a photo, then play, play with friends or send it as a gift. It includes a short FAQ about privacy and piece counts.
+- Every gallery puzzle page offers copy-paste `<iframe>` code (Easy / Medium / Hard). Embedded puzzles (`/embed/:id?pieces=60`) play on any site, save progress in the visitor's browser and link back to Jigbee in a new tab. Only embed responses allow framing (`frame-ancestors *`); all other pages keep `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN`.
+
 **Usage stats (no cookies)**
 - The app counts a small, fixed set of events per day (visits with the referring site, page views by route template, puzzles started/finished, rooms, joins, daily solves, links shared/opened). No cookies, user ids, IP addresses or full URLs are stored; browsers sending Do Not Track or Global Privacy Control are not counted.
 - The owner reads them at `/stats` with the `STATS_TOKEN` access key.
@@ -253,3 +257,4 @@ limiting cannot be spoofed via `X-Forwarded-For`.
 - The daily puzzle follows each player's local date, so for a few hours around midnight players in different time zones see different days. Link previews for `/daily` use the UTC date.
 - Usage counts are approximate: "visits" are browser-tab sessions (no cookies, so returning visitors are not recognised), counts are written to disk every minute (so up to a minute can be lost if the process crashes), and anyone can send counting requests (they are validated and rate-limited, not authenticated).
 - The daily puzzle only offers today's puzzle; there is no archive yet.
+- Embedded puzzles keep progress in the visitor's browser storage for the embedding site; browsers that block third-party storage start embedded puzzles fresh on each visit.

@@ -86,6 +86,16 @@ export function resolvePageMeta(pathname: string, ctx: PageContext, now = new Da
     };
   }
 
+  if (path === '/create') {
+    return {
+      ...base,
+      title: pageTitle('Make a jigsaw puzzle from your photo'),
+      description: 'Turn any photo into a free online jigsaw puzzle in seconds. Solve it yourself, play it with friends in real time, or send it as a gift. No sign-up.',
+      image: ogImagePath({ kind: 'catalog', id: 'pug-portrait' }),
+      imageAlt: 'A photo turned into a jigsaw puzzle',
+    };
+  }
+
   if (path === '/credits') {
     return { ...base, title: pageTitle('Image credits'), description: `Sources and licences of the pictures used on ${BRAND.name}.` };
   }
@@ -104,6 +114,19 @@ export function resolvePageMeta(pathname: string, ctx: PageContext, now = new Da
         imageAlt: `${img.title} as a jigsaw puzzle`,
       };
     }
+  }
+
+  const embed = /^\/embed\/([a-z0-9-]{1,64})$/.exec(path);
+  if (embed) {
+    const img = getCatalogImage(embed[1]!);
+    return {
+      ...base,
+      status: img ? 200 : 404,
+      title: pageTitle(img ? `${img.title} jigsaw puzzle` : 'Puzzle not found'),
+      description: BRAND.description,
+      image: img ? ogImagePath({ kind: 'catalog', id: img.id }) : base.image,
+      noindex: true,
+    };
   }
 
   const room = /^\/room\/([A-Za-z0-9]{1,12})$/.exec(path);
@@ -221,7 +244,7 @@ export function injectHead(template: string, tags: string): string {
 }
 
 export function sitemapXml(origin: string): string {
-  const paths = ['/', '/puzzles', '/daily', '/multiplayer', '/credits', ...CATALOG.map((img) => `/puzzle/${img.id}`)];
+  const paths = ['/', '/puzzles', '/daily', '/create', '/multiplayer', '/credits', ...CATALOG.map((img) => `/puzzle/${img.id}`)];
   const urls = paths.map((p) => `  <url><loc>${escapeHtml(origin + p)}</loc></url>`).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }

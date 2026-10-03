@@ -1,14 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { ImagePlus } from 'lucide-react';
-import { toast } from 'sonner';
 import { pageTitle } from '../../../shared/brand';
 import { CATALOG, CATEGORIES, type CategoryId } from '../../../shared/catalog';
 import { PageShell } from '../../components/layout/SiteHeader';
 import { PuzzleCard } from '../../components/PuzzleCard';
 import { Spinner } from '../../components/ui/Button';
 import { useUi } from '../../app/uiStore';
-import { ImageLoadError, processUpload } from '../../lib/images';
+import { usePhotoPicker } from './usePhotoPicker';
 
 export function LibraryPage() {
   const [params] = useSearchParams();
@@ -18,10 +17,7 @@ export function LibraryPage() {
     return CATEGORIES.find((c) => c.id === requested)?.id ?? 'all';
   });
   const openSetup = useUi((s) => s.openSetup);
-  const [processing, setProcessing] = useState(false);
-  const [dragging, setDragging] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
-  const dragDepth = useRef(0);
+  const { processing, dragging, pick, dropZone, inputProps } = usePhotoPicker(mode);
 
   useEffect(() => {
     document.title = pageTitle(mode === 'room' ? 'Choose a puzzle for your room' : 'Puzzles');
@@ -29,45 +25,11 @@ export function LibraryPage() {
 
   const images = useMemo(() => (category === 'all' ? CATALOG : CATALOG.filter((i) => i.category === category)), [category]);
 
-  const handleFile = async (file: File | undefined) => {
-    if (!file || processing) return;
-    setProcessing(true);
-    try {
-      const upload = await processUpload(file);
-      openSetup({ kind: 'local', upload }, mode);
-    } catch (err) {
-      toast.error(err instanceof ImageLoadError ? err.message : 'That image could not be used. Try a different file.');
-    } finally {
-      setProcessing(false);
-      if (fileInput.current) fileInput.current.value = '';
-    }
-  };
-
-  const onDragEnter = (e: DragEvent) => {
-    if (!Array.from(e.dataTransfer.types).includes('Files')) return;
-    e.preventDefault();
-    dragDepth.current++;
-    setDragging(true);
-  };
-  const onDragLeave = () => {
-    dragDepth.current = Math.max(0, dragDepth.current - 1);
-    if (dragDepth.current === 0) setDragging(false);
-  };
-  const onDrop = (e: DragEvent) => {
-    e.preventDefault();
-    dragDepth.current = 0;
-    setDragging(false);
-    void handleFile(e.dataTransfer.files[0]);
-  };
-
   return (
     <PageShell>
       <div
         className={dragging ? 'library is-dragging' : 'library'}
-        onDragEnter={onDragEnter}
-        onDragOver={(e) => e.preventDefault()}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
+        {...dropZone}
       >
         <header className="page-head">
           <div>
@@ -94,7 +56,7 @@ export function LibraryPage() {
         </div>
 
         <div className="puzzle-grid puzzle-grid--library">
-          <button className="upload-card" onClick={() => fileInput.current?.click()} disabled={processing} aria-describedby="upload-hint">
+          <button className="upload-card" onClick={pick} disabled={processing} aria-describedby="upload-hint">
             <span className="upload-card__icon">{processing ? <Spinner size={22} label="Processing image" /> : <ImagePlus />}</span>
             <span className="upload-card__title">{processing ? 'Preparing your image…' : 'Use your own photo'}</span>
             <span className="upload-card__hint" id="upload-hint">
@@ -105,15 +67,7 @@ export function LibraryPage() {
             <PuzzleCard key={img.id} image={img} onSelect={(i) => openSetup({ kind: 'catalog', id: i.id }, mode)} />
           ))}
         </div>
-        <input
-          ref={fileInput}
-          type="file"
-          accept="image/*"
-          className="visually-hidden"
-          tabIndex={-1}
-          aria-hidden="true"
-          onChange={(e) => void handleFile(e.target.files?.[0])}
-        />
+        <input {...inputProps} />
         {dragging && (
           <div className="drop-overlay" aria-hidden="true">
             <ImagePlus />

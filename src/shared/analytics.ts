@@ -29,6 +29,8 @@ export const PAGE_TEMPLATES = [
   '/puzzle/:id',
   '/multiplayer',
   '/daily',
+  '/create',
+  '/embed/:id',
   '/room/:code',
   '/play/:id',
   '/s/:id',
@@ -40,8 +42,9 @@ export const PAGE_TEMPLATES = [
 /** Maps a pathname to a template so ids and room codes are never recorded. */
 export function pageTemplate(pathname: string): (typeof PAGE_TEMPLATES)[number] {
   const p = pathname.replace(/\/+$/, '') || '/';
-  if (p === '/' || p === '/puzzles' || p === '/multiplayer' || p === '/daily' || p === '/credits' || p === '/stats') return p;
+  if (p === '/' || p === '/puzzles' || p === '/multiplayer' || p === '/daily' || p === '/create' || p === '/credits' || p === '/stats') return p;
   if (/^\/puzzle\/[^/]+$/.test(p)) return '/puzzle/:id';
+  if (/^\/embed\/[^/]+$/.test(p)) return '/embed/:id';
   if (/^\/room\/[^/]+$/.test(p)) return '/room/:code';
   if (/^\/play\/[^/]+$/.test(p)) return '/play/:id';
   if (/^\/s\/[^/]+$/.test(p)) return '/s/:id';

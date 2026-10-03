@@ -1,3 +1,5 @@
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { makePng, pieceCount, prepare, solveAll, startSolo, waitForEngine } from './helpers';
 
@@ -181,4 +183,59 @@ test('usage counting: page views are reported and the owner can read totals', as
   await expect(page.getByRole('heading', { name: 'Popular pictures' })).toBeVisible();
   await expect(page.locator('.stats-list', { hasText: 'Popular pictures' }).getByText('The Great Wave off Kanagawa')).toBeVisible();
   await expect(page.locator('.stats-list', { hasText: 'Pages' }).getByText('/multiplayer', { exact: true })).toBeVisible();
+});
+
+test('photo puzzle maker page: choose a photo and start', async ({ page }) => {
+  await prepare(page);
+  await page.goto('/create');
+  await expect(page).toHaveTitle('Make a jigsaw puzzle from your photo — Jigbee');
+  await page.getByText('What happens to my photo?').click();
+  await expect(page.getByText(/A puzzle you play alone stays on your device/)).toBeVisible();
+  const png = await makePng(page, 1000, 750);
+  await page.locator('input[type=file]').setInputFiles({ name: 'garden.png', mimeType: 'image/png', buffer: png });
+  await expect(page.getByRole('dialog', { name: 'garden' })).toBeVisible();
+  await page.getByRole('radio', { name: /^Easy/ }).click();
+  await page.getByRole('button', { name: 'Start puzzle' }).click();
+  await waitForEngine(page);
+  expect(await pieceCount(page)).toBeLessThanOrEqual(30);
+});
+
+test('embedded puzzle plays inside another site and links back in a new tab', async ({ page, baseURL }) => {
+  await prepare(page);
+  await page.goto('/puzzle/golden-hour-lake');
+  await page.getByText('Put this puzzle on your website').click();
+  await page.getByRole('radio', { name: /^Easy/ }).click();
+  const code = await page.getByLabel('Code to paste into your page').inputValue();
+  expect(code).toMatch(/^<iframe src="http:\/\/localhost:\d+\/embed\/golden-hour-lake\?pieces=\d+" title="Golden Hour Lake jigsaw puzzle"/);
+
+  // A blog on another origin pastes the code. It is served from a real loopback server:
+  // Chrome refuses to let pages without a local address frame localhost.
+  const blog = createServer((_req, res) => {
+    res.setHeader('content-type', 'text/html');
+    res.end(`<!doctype html><title>My blog</title><h1>Puzzle break</h1>${code}`);
+  });
+  await new Promise<void>((resolve) => blog.listen(0, '127.0.0.1', resolve));
+  const blogUrl = `http://127.0.0.1:${(blog.address() as AddressInfo).port}/post`;
+  await page.goto(blogUrl);
+  const frame = page.frameLocator('iframe');
+  const backLink = frame.getByRole('link', { name: 'Open Jigbee in a new tab' });
+  await expect(backLink).toBeVisible({ timeout: 20_000 });
+  await expect(backLink).toHaveAttribute('target', '_blank');
+  await expect(backLink).toHaveAttribute('href', '/puzzle/golden-hour-lake');
+  const inner = page.frames().find((f) => f.url().includes('/play/embed-golden-hour-lake-'))!;
+  expect(inner).toBeTruthy();
+  await inner.waitForFunction(() => !!(window as unknown as { __jigsaw?: unknown }).__jigsaw);
+  const total = await inner.evaluate(() => (window as unknown as { __jigsaw: { engine: { model: { pieceCount: number } } } }).__jigsaw.engine.model.pieceCount);
+  expect(total).toBeGreaterThanOrEqual(20);
+  expect(total).toBeLessThanOrEqual(30);
+  await frame.getByRole('button', { name: 'More options' }).click();
+  await expect(frame.getByRole('menuitem', { name: 'More puzzles on Jigbee' })).toBeVisible();
+
+  // Ordinary pages still refuse to be framed.
+  const home = await page.request.get(`${baseURL}/`);
+  expect(home.headers()['x-frame-options']).toBe('SAMEORIGIN');
+  const embedded = await page.request.get(`${baseURL}/embed/golden-hour-lake`);
+  expect(embedded.headers()['x-frame-options']).toBeUndefined();
+  expect(embedded.headers()['content-security-policy']).toContain('frame-ancestors *');
+  blog.close();
 });

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Gift, Grid2x2Plus, Keyboard, RotateCcw, Share2, Swords, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { puzzleLabel } from '../../../shared/analytics';
-import { pageTitle } from '../../../shared/brand';
+import { BRAND, pageTitle } from '../../../shared/brand';
 import { catalogImageUrl } from '../../../shared/catalog';
 import { dailyPuzzle } from '../../../shared/daily';
 import type { ImageRef } from '../../../shared/protocol';
@@ -69,7 +69,14 @@ type LoadState =
 
 export default function PlayPage() {
   const { gameId = '' } = useParams();
+  // Embedded on another site (see /embed): links that leave the puzzle open the site in a new tab.
+  const [searchParams] = useSearchParams();
+  const embed = searchParams.get('embed') === '1';
   const navigate = useNavigate();
+  const morePuzzles = useCallback(() => {
+    if (embed) window.open('/puzzles', '_blank', 'noopener');
+    else navigate('/puzzles');
+  }, [embed, navigate]);
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
   const engineRef = useRef<GameEngine | null>(null);
@@ -348,7 +355,7 @@ export default function PlayPage() {
                 <Share2 />
                 Share result
               </Button>
-              <Button onClick={() => navigate('/puzzles')}>More puzzles</Button>
+              <Button onClick={morePuzzles}>More puzzles</Button>
             </>
           }
         />
@@ -375,7 +382,7 @@ export default function PlayPage() {
                 <Swords />
                 Challenge back
               </Button>
-              <Button onClick={() => navigate('/puzzles')}>New puzzle</Button>
+              <Button onClick={morePuzzles}>{embed ? 'More puzzles' : 'New puzzle'}</Button>
             </>
           }
         />
@@ -395,8 +402,8 @@ export default function PlayPage() {
         ]}
         actions={
           <>
-            <Button variant="primary" onClick={() => navigate('/puzzles')}>
-              New puzzle
+            <Button variant="primary" onClick={morePuzzles}>
+              {embed ? 'More puzzles' : 'New puzzle'}
             </Button>
             <Button onClick={() => void restart()}>Play again</Button>
             <Button variant="ghost" onClick={() => openShare(true)}>
@@ -419,7 +426,11 @@ export default function PlayPage() {
         title={game?.title ?? 'Puzzle'}
         subtitle={subtitle}
         imageUrl={load.status === 'ready' ? load.imageUrl : ''}
-        backTo={{ href: '/', label: 'Back to home' }}
+        backTo={
+          embed
+            ? { href: game?.image.kind === 'catalog' ? `/puzzle/${game.image.id}` : '/', label: `Open ${BRAND.name} in a new tab`, newTab: true }
+            : { href: '/', label: 'Back to home' }
+        }
         timer={timer}
         interactive={!paused}
         completed={completion !== null}
@@ -438,7 +449,7 @@ export default function PlayPage() {
         pause={{ paused, toggle: () => setPaused((p) => !p) }}
         menu={[
           { label: 'Restart puzzle', icon: <RotateCcw />, onSelect: () => setConfirmRestart(true) },
-          { label: 'New puzzle', icon: <Grid2x2Plus />, onSelect: () => navigate('/puzzles') },
+          { label: embed ? `More puzzles on ${BRAND.name}` : 'New puzzle', icon: <Grid2x2Plus />, onSelect: morePuzzles },
           { label: 'Play this with friends', icon: <Users />, onSelect: () => void inviteFriends() },
           { label: 'Send to a friend', icon: <Gift />, onSelect: () => openShare(false) },
           { label: '-', onSelect: () => undefined },
