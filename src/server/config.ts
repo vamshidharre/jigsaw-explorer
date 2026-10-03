@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { INDEXNOW_KEY_PATTERN } from './seo/indexNow';
 
 function int(name: string, fallback: number): number {
   const raw = process.env[name];
@@ -17,6 +18,30 @@ function verificationToken(name: string): string | null {
   const raw = (process.env[name] ?? '').trim();
   if (!raw) return null;
   if (!/^[A-Za-z0-9_-]{8,120}$/.test(raw)) throw new Error(`${name} must be the token only (letters, digits, - and _)`);
+  return raw;
+}
+
+/** An absolute http(s) origin from an environment variable, or null. */
+function originFrom(name: string): string | null {
+  const raw = (process.env[name] ?? '').trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.origin : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Key for IndexNow search-engine submissions. It is public by design (served
+ * at /<key>.txt), so a default lives in the code; INDEXNOW_KEY overrides it.
+ */
+const DEFAULT_INDEXNOW_KEY = '0402aa82c500cd3231b3ab65dc99512e';
+
+function indexNowKey(): string {
+  const raw = (process.env.INDEXNOW_KEY ?? '').trim() || DEFAULT_INDEXNOW_KEY;
+  if (!INDEXNOW_KEY_PATTERN.test(raw)) throw new Error('INDEXNOW_KEY must be 8-128 letters, digits or dashes');
   return raw;
 }
 
@@ -75,4 +100,16 @@ export const config = {
   /** <meta> verification for Google Search Console and Bing Webmaster Tools. */
   googleSiteVerification: verificationToken('GOOGLE_SITE_VERIFICATION'),
   bingSiteVerification: verificationToken('BING_SITE_VERIFICATION'),
+  /** The address the site is reached at from the internet: PUBLIC_URL, else Render's own URL. */
+  externalUrl: publicUrl() ?? (onRender ? originFrom('RENDER_EXTERNAL_URL') : null),
+  /** Submit public pages to IndexNow search engines after each deploy (production only). */
+  indexNow: (process.env.INDEXNOW ?? 'on').toLowerCase() !== 'off',
+  indexNowKey: indexNowKey(),
+  indexNowEndpoint: process.env.INDEXNOW_ENDPOINT ?? 'https://api.indexnow.org/indexnow',
+  /** Wait for the new version to receive traffic before submitting, so search engines can fetch the key file. */
+  indexNowDelayMs: int('INDEXNOW_DELAY_SECONDS', 180) * 1000,
+  /** Identifies the deployed version for IndexNow (Render sets RENDER_GIT_COMMIT). */
+  deployId: process.env.RENDER_GIT_COMMIT ?? 'local',
+  /** Ping the public URL every 10 minutes so a free Render instance never goes to sleep. */
+  keepAwake: process.env.KEEP_AWAKE === '1',
 } as const;

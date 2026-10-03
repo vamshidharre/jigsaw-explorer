@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { puzzleLabel } from '../../../shared/analytics';
 import { BRAND, pageTitle } from '../../../shared/brand';
 import { catalogImageUrl } from '../../../shared/catalog';
-import { dailyPuzzle } from '../../../shared/daily';
+import { dailyPuzzle, localDayKey } from '../../../shared/daily';
 import type { ImageRef } from '../../../shared/protocol';
 import { PuzzleModel } from '../../../shared/puzzle/model';
 import { difficultyLabel } from '../../../shared/puzzle/spec';
@@ -213,7 +213,9 @@ export default function PlayPage() {
     const { previous, isBest } = recordTime(game.image, game.total, game.spec.rotation, ms);
     if (game.daily) {
       const first = dailyResult(game.daily) === null;
-      recordDailyResult(game.daily, { ms, moves: movesRef.current, pieces: game.total, completedAt: Date.now() });
+      // A puzzle started on its own day counts even if it is finished after midnight.
+      const late = localDayKey(new Date(game.createdAt)) !== game.daily;
+      recordDailyResult(game.daily, { ms, moves: movesRef.current, pieces: game.total, completedAt: Date.now(), late });
       if (first) track('daily_complete');
     } else {
       track('solo_complete', puzzleLabel(game.image.kind === 'catalog' ? game.image : { kind: 'photo' }));
@@ -342,7 +344,7 @@ export default function PlayPage() {
       return (
         <CompletionCard
           title={`Daily puzzle #${daily.number} solved`}
-          subtitle={`${daily.title} · ${game.total} pieces`}
+          subtitle={`${daily.title} · ${game.total} pieces${dailyResult(key)?.late ? ' · played late, not counted in your streak' : ''}`}
           onDismiss={onDismiss}
           stats={[
             { label: 'Time', value: formatDuration(done.ms) },

@@ -1,5 +1,7 @@
 # Jigbee
 
+**Play now: https://jigsaw-explorer.onrender.com** · [Today's puzzle](https://jigsaw-explorer.onrender.com/daily) · [Make a puzzle from your photo](https://jigsaw-explorer.onrender.com/create)
+
 Online jigsaw puzzles you can solve on your own or together with friends in
 real time. Pick a picture (or upload your own), choose anything from 6 to
 1,000 pieces, optionally turn on piece rotation, and play with a mouse,
@@ -34,6 +36,7 @@ every move is arbitrated on the server and broadcast to everyone in the room.
 **Daily puzzle**
 - One puzzle per day (`/daily`): everyone gets the same picture cut the same way (48 pieces on weekdays, about 100 at weekends), cycling through the whole gallery before repeating.
 - Streaks, best streak, best time and a week strip; the first completion of the day counts.
+- An archive of the previous 14 days. Puzzles started after their day are marked late and do not count towards streaks (a puzzle started on its day still counts if finished after midnight).
 - "Share result" copies (or, on phones, shares) a spoiler-free text such as `Jigbee daily #276 🧩 / 100 pieces in 6:12 / 🔥 3-day streak`.
 
 **Share links and challenges**
@@ -206,6 +209,14 @@ if no build exists. A failed build fails the deploy, so the previous version sta
 online. Render is treated as production (HSTS, trusted proxy for client IPs) even
 without `NODE_ENV`. The Node version comes from `.node-version` (22).
 
+**Search engines.** In production the server knows its public address
+(`PUBLIC_URL`, or Render's own URL) and submits the sitemap's pages to
+IndexNow a few minutes after it starts, once per deployed version when the data
+directory persists (otherwise once per start). The home page carries WebSite
+structured data so search results show the name "Jigbee". Google does not take
+IndexNow: register the site in Google Search Console and submit
+`/sitemap.xml` there.
+
 Without `STATS_TOKEN` the server generates an access key for `/stats`, stores it
 in `DATA_DIR/stats-token` and prints it in the log at every start (search the
 logs for "usage stats access key").
@@ -242,6 +253,9 @@ limiting cannot be spoofed via `X-Forwarded-For`.
 | `STATS_TOKEN` | generated | Access key (12+ characters) for `/stats`. When unset, one is generated, saved in `DATA_DIR/stats-token` and printed in the log. |
 | `GOOGLE_SITE_VERIFICATION` | — | Google Search Console token (the `content` value of its HTML-tag method) |
 | `BING_SITE_VERIFICATION` | — | Bing Webmaster Tools token (`msvalidate.01`) |
+| `INDEXNOW` | `on` | Submit the public pages to IndexNow (Bing, Yandex, Seznam, Naver) a few minutes after each start in production; `off` disables it |
+| `INDEXNOW_KEY` | built in | IndexNow ownership key, served at `/<key>.txt` (public by design) |
+| `KEEP_AWAKE` | — | `1` makes the server request its own public URL every 10 minutes so a free Render instance never sleeps. It uses about 744 of the 750 free instance hours per month, so only turn it on if this is your only free service |
 | `ANALYTICS` | `on` | `off` disables usage counting entirely |
 | `SHARE_TTL_DAYS` | `30` | How long share links (and the photos they use) are kept |
 | `MAX_SHARES` | `50000` | Upper limit on live share links |
@@ -256,5 +270,5 @@ limiting cannot be spoofed via `X-Forwarded-For`.
 - Challenge times are reported by the sender's browser and are not verified, so a challenge can be faked. They are a friendly comparison, not a leaderboard.
 - The daily puzzle follows each player's local date, so for a few hours around midnight players in different time zones see different days. Link previews for `/daily` use the UTC date.
 - Usage counts are approximate: "visits" are browser-tab sessions (no cookies, so returning visitors are not recognised), counts are written to disk every minute (so up to a minute can be lost if the process crashes), and anyone can send counting requests (they are validated and rate-limited, not authenticated).
-- The daily puzzle only offers today's puzzle; there is no archive yet.
+- The daily archive goes back 14 days.
 - Embedded puzzles keep progress in the visitor's browser storage for the embedding site; browsers that block third-party storage start embedded puzzles fresh on each visit.

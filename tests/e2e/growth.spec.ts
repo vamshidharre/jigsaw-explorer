@@ -239,3 +239,42 @@ test('embedded puzzle plays inside another site and links back in a new tab', as
   expect(embedded.headers()['content-security-policy']).toContain('frame-ancestors *');
   blog.close();
 });
+
+test('daily archive: play an earlier day; late solves do not count towards the streak', async ({ page }) => {
+  await prepare(page);
+  await page.addInitScript(() => {
+    const key = (offset: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() - offset);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+    if (!localStorage.getItem('jigsaw.daily.v1')) {
+      localStorage.setItem(
+        'jigsaw.daily.v1',
+        JSON.stringify({
+          results: {
+            [key(1)]: { ms: 310_000, moves: 60, pieces: 48, completedAt: Date.now(), late: true },
+            [key(2)]: { ms: 320_000, moves: 61, pieces: 48, completedAt: Date.now() - 2 * 86_400_000 },
+          },
+        }),
+      );
+    }
+  });
+  await page.goto('/daily');
+  const stat = (name: string) => page.locator('.daily__stats > div', { hasText: new RegExp(`^${name}`) }).locator('dd');
+  await expect(stat('Played')).toHaveText('2');
+  // Yesterday was solved late, so there is no current streak; the day before counts on its own.
+  await expect(stat('Streak')).toHaveText('0');
+  await expect(stat('Best streak')).toHaveText('1');
+  await expect(page.getByRole('button', { name: /Solved late in 5:10$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Solved in 5:20$/ })).toBeVisible();
+
+  const third = page.locator('.daily-archive__item').nth(2);
+  const label = (await third.getAttribute('aria-label')) ?? '';
+  const pieces = Number(/(\d+) pieces$/.exec(label)![1]);
+  await third.click();
+  await page.waitForURL(/\/play\/daily-\d{4}-\d{2}-\d{2}$/);
+  await waitForEngine(page);
+  expect(await pieceCount(page)).toBe(pieces);
+  await expect(page.getByRole('heading', { level: 1, name: /^Daily puzzle #\d+$/ })).toBeVisible();
+});

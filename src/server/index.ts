@@ -9,6 +9,8 @@ import { UploadStore } from './images/uploadStore';
 import { log } from './logger';
 import { RoomStore } from './persistence/roomStore';
 import { RoomManager } from './rooms/RoomManager';
+import { sitemapPaths } from './http/pages';
+import { submitToIndexNow } from './seo/indexNow';
 import { ShareStore } from './shares/ShareStore';
 import { attachGateway } from './ws/gateway';
 
@@ -56,6 +58,7 @@ export async function startServer(overrides: Partial<typeof config> = {}) {
     publicUrl: cfg.publicUrl,
     statsToken: await resolveStatsToken(cfg),
     verification: { google: cfg.googleSiteVerification, bing: cfg.bingSiteVerification },
+    indexNowKey: cfg.indexNow ? cfg.indexNowKey : null,
     uploadMaxBytes: cfg.uploadMaxBytes,
     trustProxy: cfg.trustProxy,
     isProduction: cfg.isProduction,
@@ -92,11 +95,41 @@ export async function startServer(overrides: Partial<typeof config> = {}) {
   const port = typeof address === 'object' && address ? address.port : cfg.port;
   log.info('server listening', { port, env: cfg.isProduction ? 'production' : 'development' });
 
+  // Announce the public pages to search engines once the new version is live.
+  const external = cfg.externalUrl;
+  const indexNowTimer =
+    cfg.isProduction && cfg.indexNow && external
+      ? setTimeout(() => {
+          submitToIndexNow(sitemapPaths(), {
+            origin: external,
+            key: cfg.indexNowKey,
+            endpoint: cfg.indexNowEndpoint,
+            dataDir: cfg.dataDir,
+            deployId: cfg.deployId,
+          })
+            .then((r) => log.info('indexnow', { ...r, origin: external }))
+            .catch((err) => log.warn('indexnow submission failed', { err: String(err) }));
+        }, cfg.indexNowDelayMs)
+      : null;
+
+  // Optional: keep a free Render instance from sleeping by requesting its own public URL.
+  const keepAwakeTimer =
+    cfg.keepAwake && external
+      ? setInterval(() => {
+          fetch(`${external}/api/health`, { signal: AbortSignal.timeout(15_000) }).catch((err) =>
+            log.warn('keep-awake ping failed', { err: String(err) }),
+          );
+        }, 10 * 60_000)
+      : null;
+  if (cfg.keepAwake && !external) log.warn('KEEP_AWAKE is set but the public URL is unknown; set PUBLIC_URL');
+
   async function stop() {
     clearInterval(tick);
     clearInterval(sweep);
     clearInterval(cleanup);
     clearInterval(flushAnalytics);
+    if (indexNowTimer) clearTimeout(indexNowTimer);
+    if (keepAwakeTimer) clearInterval(keepAwakeTimer);
     await rooms.shutdown();
     await analytics.flush();
     wss.close();

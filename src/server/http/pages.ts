@@ -229,7 +229,17 @@ export function renderHeadTags(meta: PageMeta, origin: string, verification: Sit
   const lines = [`<title>${escapeHtml(meta.title)}</title>`];
   for (const [attr, key, value] of tags) lines.push(`<meta ${attr}="${key}" content="${escapeHtml(value)}" />`);
   if (!meta.noindex) lines.push(`<link rel="canonical" href="${escapeHtml(url)}" />`);
+  // Structured data: the WebSite entry on the home page is what search engines use as the site name.
+  if (meta.path === '/') {
+    const site = { '@context': 'https://schema.org', '@type': 'WebSite', name: BRAND.name, alternateName: `${BRAND.name} jigsaw puzzles`, url: `${origin}/`, description: BRAND.description };
+    lines.push(`<script type="application/ld+json">${jsonForScript(site)}</script>`);
+  }
   return lines.join('\n    ');
+}
+
+/** JSON that is safe inside a <script> element. */
+function jsonForScript(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
 }
 
 const HEAD_BLOCK = /<!-- head:meta[^>]*-->[\s\S]*?<!-- \/head:meta -->/;
@@ -243,9 +253,13 @@ export function injectHead(template: string, tags: string): string {
   return template.replace(HEAD_BLOCK, () => tags);
 }
 
+/** Public, indexable pages (sitemap and search-engine submission). */
+export function sitemapPaths(): string[] {
+  return ['/', '/puzzles', '/daily', '/create', '/multiplayer', '/credits', ...CATALOG.map((img) => `/puzzle/${img.id}`)];
+}
+
 export function sitemapXml(origin: string): string {
-  const paths = ['/', '/puzzles', '/daily', '/create', '/multiplayer', '/credits', ...CATALOG.map((img) => `/puzzle/${img.id}`)];
-  const urls = paths.map((p) => `  <url><loc>${escapeHtml(origin + p)}</loc></url>`).join('\n');
+  const urls = sitemapPaths().map((p) => `  <url><loc>${escapeHtml(origin + p)}</loc></url>`).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
 

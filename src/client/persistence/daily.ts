@@ -1,6 +1,8 @@
 /**
  * Daily puzzle results and streaks, kept in localStorage. Only the first
- * completion of a day counts (that is the time people share).
+ * completion of a day counts (that is the time people share). Puzzles started
+ * after their day (from the archive) are marked late and do not count towards
+ * streaks.
  */
 import { streaks, type DailyPuzzle } from '../../shared/daily';
 import { BRAND } from '../../shared/brand';
@@ -13,6 +15,8 @@ export interface DailyResult {
   moves: number;
   pieces: number;
   completedAt: number;
+  /** Started after its day was over (played from the archive). */
+  late?: boolean;
 }
 
 export interface DailyStats {
@@ -49,7 +53,8 @@ export function recordDailyResult(key: string, result: DailyResult): DailyResult
 }
 
 export function dailyStats(today: string, results = dailyResults()): DailyStats {
-  const { current, best } = streaks(new Set(Object.keys(results)), today);
+  const onTime = Object.keys(results).filter((day) => !results[day]!.late);
+  const { current, best } = streaks(new Set(onTime), today);
   const times = Object.values(results).map((r) => r.ms);
   return { played: Object.keys(results).length, currentStreak: current, bestStreak: best, bestMs: times.length ? Math.min(...times) : null };
 }

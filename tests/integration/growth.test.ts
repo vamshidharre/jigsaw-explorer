@@ -1,9 +1,12 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { request } from 'node:http';
+import { createServer, request } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { sitemapPaths } from '../../src/server/http/pages';
+import { submitToIndexNow } from '../../src/server/seo/indexNow';
 import { dailyPuzzle, utcDayKey } from '../../src/shared/daily';
 import type { ShareInfo } from '../../src/shared/protocol';
 import { createRoom, launch, sleep, TestClient, type TestServer } from './helpers';
@@ -349,5 +352,57 @@ describe('photo maker and embeds', () => {
     const embedPage = await page('/embed/great-wave');
     expect(meta(embedPage.html, 'robots')).toBe('noindex');
     expect((await page('/embed/not-a-picture')).status).toBe(404);
+  });
+});
+
+describe('search-engine visibility', () => {
+  it('serves the IndexNow key file and site-name structured data', async () => {
+    await start({ indexNowKey: 'test-indexnow-key-123' });
+    const keyFile = await fetch(`${server.url}/test-indexnow-key-123.txt`);
+    expect(keyFile.status).toBe(200);
+    expect(await keyFile.text()).toBe('test-indexnow-key-123');
+    const { html } = await page('/');
+    const ld = /<script type="application\/ld\+json">([^<]*)<\/script>/.exec(html);
+    expect(ld).not.toBeNull();
+    expect(JSON.parse(ld![1]!)).toMatchObject({ '@type': 'WebSite', name: 'Jigbee', url: `${server.url}/` });
+    expect((await page('/puzzles')).html).not.toContain('application/ld+json');
+  });
+
+  it('submits public pages to IndexNow once per deployed version', async () => {
+    const received: Array<{ host: string; key: string; keyLocation: string; urlList: string[] }> = [];
+    let reply = 202;
+    const mock = createServer((req, res) => {
+      let body = '';
+      req.on('data', (c) => (body += c));
+      req.on('end', () => {
+        received.push(JSON.parse(body));
+        res.statusCode = reply;
+        res.end();
+      });
+    });
+    await new Promise<void>((resolve) => mock.listen(0, '127.0.0.1', resolve));
+    const endpoint = `http://127.0.0.1:${(mock.address() as AddressInfo).port}/indexnow`;
+    const opts = { origin: 'https://jigbee.com', key: 'abcdef123456', endpoint, dataDir: dir, deployId: 'commit-1' };
+    try {
+      reply = 500;
+      expect(await submitToIndexNow(sitemapPaths(), opts)).toMatchObject({ submitted: false, status: 500 });
+      reply = 202;
+      expect(await submitToIndexNow(sitemapPaths(), opts)).toMatchObject({ submitted: true, status: 202 });
+      expect(await submitToIndexNow(sitemapPaths(), opts)).toMatchObject({ submitted: false, reason: 'already submitted' });
+      expect(await submitToIndexNow(sitemapPaths(), { ...opts, deployId: 'commit-2' })).toMatchObject({ submitted: true });
+      expect(received).toHaveLength(3);
+      expect(received[1]).toMatchObject({ host: 'jigbee.com', key: 'abcdef123456', keyLocation: 'https://jigbee.com/abcdef123456.txt' });
+      expect(received[1]!.urlList).toContain('https://jigbee.com/puzzle/great-wave');
+      expect(received[1]!.urlList).toContain('https://jigbee.com/daily');
+      expect(received[1]!.urlList.some((u) => u.includes('/room/') || u.includes('/s/'))).toBe(false);
+
+      // The server does it by itself in production once it has a public address.
+      received.length = 0;
+      await start({ isProduction: true, externalUrl: 'https://jigbee.com', indexNowEndpoint: endpoint, indexNowDelayMs: 20, deployId: 'commit-3' });
+      await expect.poll(() => received.length, { timeout: 3000 }).toBe(1);
+      expect(received[0]!.urlList[0]).toBe('https://jigbee.com/');
+    } finally {
+      mock.close();
+    }
   });
 });

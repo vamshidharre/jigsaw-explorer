@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { CalendarDays, Check, Flame, Play, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { pageTitle } from '../../../shared/brand';
-import { catalogImageUrl, getCatalogImage } from '../../../shared/catalog';
+import { catalogImageUrl, catalogThumbUrl, getCatalogImage } from '../../../shared/catalog';
 import { addDays, dailyPuzzle, localDayKey } from '../../../shared/daily';
 import { PageShell } from '../../components/layout/SiteHeader';
 import { PuzzleArt } from '../../components/PuzzleArt';
@@ -40,6 +40,9 @@ function useCountdown(): string {
   return h > 0 ? `${h} h ${m} min` : `${m} min`;
 }
 
+/** How many earlier days can be played from the daily page. */
+const ARCHIVE_DAYS = 14;
+
 export function shareDailyResult(key: string): void {
   const result = dailyResults()[key];
   if (!result) return;
@@ -73,10 +76,10 @@ export function DailyPage() {
     };
   }, [today, puzzle.number]);
 
-  const play = async () => {
+  const play = async (key = today) => {
     setBusy(true);
     try {
-      navigate(`/play/${await startDaily(today)}`);
+      navigate(`/play/${await startDaily(key)}`);
     } catch {
       toast.error('Could not start the puzzle. Please try again.');
       setBusy(false);
@@ -86,6 +89,7 @@ export function DailyPage() {
   const progress = game && game.total ? Math.round((game.connected / game.total) * 100) : 0;
   const inProgress = !result && game && game.groups.length > 0;
   const week = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
+  const archive = Array.from({ length: ARCHIVE_DAYS }, (_, i) => addDays(today, -(i + 1)));
   const dateLabel = new Date(`${today}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 
   return (
@@ -168,20 +172,56 @@ export function DailyPage() {
 
           <ol className="daily__week" aria-label="This week">
             {week.map((day) => {
-              const done = Boolean(results[day]);
+              const r = results[day];
+              const state = !r ? 'not solved' : r.late ? 'solved late' : 'solved';
               const label = new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short' });
               return (
                 <li key={day} className={day === today ? 'is-today' : undefined}>
-                  <span className={done ? 'daily__dot is-done' : 'daily__dot'} aria-hidden="true">
-                    {done && <Check />}
+                  <span className={!r ? 'daily__dot' : r.late ? 'daily__dot is-late' : 'daily__dot is-done'} aria-hidden="true">
+                    {r && <Check />}
                   </span>
                   <span className="daily__day">{label}</span>
-                  <span className="visually-hidden">{done ? 'solved' : 'not solved'}</span>
+                  <span className="visually-hidden">{state}</span>
                 </li>
               );
             })}
           </ol>
         </div>
+      </section>
+
+      <section className="section" aria-labelledby="daily-archive">
+        <div className="section__head">
+          <h2 id="daily-archive">Earlier puzzles</h2>
+        </div>
+        <p className="daily__archive-note">Missed a day? Play it now. Puzzles from earlier days don't count towards your streak.</p>
+        <ul className="daily-archive">
+          {archive.map((key) => {
+            const p = dailyPuzzle(key);
+            const img = getCatalogImage(p.imageId)!;
+            const r = results[key];
+            const date = new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+            const status = r ? `${r.late ? 'Solved late' : 'Solved'} in ${formatDuration(r.ms)}` : `${p.spec.cols * p.spec.rows} pieces`;
+            return (
+              <li key={key}>
+                <button className="daily-archive__item" onClick={() => void play(key)} disabled={busy} aria-label={`Daily puzzle #${p.number}, ${date}. ${status}`}>
+                  <span className="daily-archive__thumb" style={{ backgroundColor: img.color, backgroundImage: `url(${img.blur})` }}>
+                    <img src={catalogThumbUrl(img.id)} alt="" loading="lazy" />
+                    {r && (
+                      <span className={r.late ? 'daily-archive__badge is-late' : 'daily-archive__badge'} aria-hidden="true">
+                        <Check />
+                      </span>
+                    )}
+                  </span>
+                  <span className="daily-archive__meta">
+                    <span className="daily-archive__num">#{p.number}</span>
+                    <span className="daily-archive__date">{date}</span>
+                  </span>
+                  <span className="daily-archive__status">{status}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </section>
     </PageShell>
   );

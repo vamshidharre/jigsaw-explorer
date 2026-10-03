@@ -47,6 +47,8 @@ export interface AppOptions {
   statsToken: string | null;
   /** Search-engine ownership tokens, added to every page. */
   verification?: SiteVerification;
+  /** IndexNow key, served at /<key>.txt to prove the site is ours; null disables it. */
+  indexNowKey?: string | null;
 }
 
 const HOST_PATTERN = /^[a-z0-9.-]+(:\d{1,5})?$/i;
@@ -310,6 +312,14 @@ export function createApp(opts: AppOptions) {
       next(err);
     }
   });
+
+  if (opts.indexNowKey) {
+    const key = opts.indexNowKey;
+    app.get(`/${key}.txt`, (_req, res) => {
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.type('text/plain').send(key);
+    });
+  }
 
   app.get('/robots.txt', (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=3600');
