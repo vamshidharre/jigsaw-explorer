@@ -21,7 +21,7 @@ for (const theme of ['light', 'dark'] as const) {
     });
 
     test('site pages', async ({ page }) => {
-      for (const path of ['/', '/puzzles', '/multiplayer', '/credits', '/nope']) {
+      for (const path of ['/', '/puzzles', '/multiplayer', '/daily', '/puzzle/great-wave', '/stats', '/credits', '/s/abcdefghij', '/nope']) {
         await page.goto(path);
         await page.waitForTimeout(300);
         await audit(page, path);
@@ -40,6 +40,25 @@ for (const theme of ['light', 'dark'] as const) {
         await page.getByRole('tab', { name: tab }).click();
         await audit(page, `settings ${tab}`, '[role="dialog"]');
       }
+    });
+
+    test('share links: dialog and landing page', async ({ page }) => {
+      await page.goto('/puzzles');
+      await page.getByRole('button', { name: /^The Scream\./ }).click();
+      await page.getByRole('button', { name: 'Send to a friend' }).click();
+      await audit(page, 'share form', '[role="dialog"]:has(.share-form, .share-result)');
+      await page.getByRole('button', { name: 'Create link' }).click();
+      const link = await page.getByLabel('Puzzle link').inputValue();
+      await audit(page, 'share result', '[role="dialog"]:has(.share-form, .share-result)');
+      await page.goto(link);
+      await expect(page.getByRole('heading', { name: 'Ari sent you a jigsaw puzzle' })).toBeVisible();
+      await audit(page, 'gift page');
+      const challenge = await page.request.post('/api/shares', {
+        data: { image: { kind: 'catalog', id: 'great-wave' }, cols: 6, rows: 4, rotation: false, from: 'Ari', challenge: { ms: 95000, moves: 30 } },
+      });
+      await page.goto(`/s/${((await challenge.json()) as { id: string }).id}`);
+      await expect(page.getByRole('heading', { name: 'Ari solved this in 1:35' })).toBeVisible();
+      await audit(page, 'challenge page');
     });
 
     test('game screen, menus and help', async ({ page }) => {

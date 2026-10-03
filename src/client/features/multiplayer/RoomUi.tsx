@@ -10,6 +10,7 @@ import { Dialog } from '../../components/ui/Dialog';
 import { useUi } from '../../app/uiStore';
 import { initials } from '../../lib/format';
 import { ImageLoadError, processUpload } from '../../lib/images';
+import { copyText } from '../../lib/share';
 import { useSettings } from '../settings/settingsStore';
 import { inviteLink, useRoom } from './roomStore';
 
@@ -19,25 +20,6 @@ export function Avatar({ name, color, size = 32, title }: { name: string; color:
       {initials(name)}
     </span>
   );
-}
-
-async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    // Fallback for browsers without async clipboard permission.
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('readonly', '');
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    const ok = document.execCommand('copy');
-    ta.remove();
-    return ok;
-  }
 }
 
 export function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChange(o: boolean): void }) {

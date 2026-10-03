@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { Grid2x2Plus, Keyboard, RotateCcw, Users } from 'lucide-react';
+import { Gift, Grid2x2Plus, Keyboard, RotateCcw, Share2, Swords, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import { puzzleLabel } from '../../../shared/analytics';
+import { pageTitle } from '../../../shared/brand';
 import { catalogImageUrl } from '../../../shared/catalog';
+import { dailyPuzzle } from '../../../shared/daily';
+import type { ImageRef } from '../../../shared/protocol';
 import { PuzzleModel } from '../../../shared/puzzle/model';
 import { difficultyLabel } from '../../../shared/puzzle/spec';
 import { randomSeed } from '../../../shared/rng';
@@ -11,6 +15,8 @@ import { Dialog } from '../../components/ui/Dialog';
 import { PageLoader, StateScreen } from '../../components/layout/PageLoader';
 import { useUi } from '../../app/uiStore';
 import type { GameEngine } from '../../engine/GameEngine';
+import { track } from '../../lib/analytics';
+import { uploadImage } from '../../lib/api';
 import { formatDuration } from '../../lib/format';
 import { decodeBlob, ImageLoadError, loadImage, type LoadedImage } from '../../lib/images';
 import {
@@ -23,7 +29,10 @@ import {
   getBestTime,
   type SavedGame,
 } from '../../persistence/savedGames';
+import { dailyResult, dailyStats, recordDailyResult } from '../../persistence/daily';
 import { useSettings } from '../settings/settingsStore';
+import { shareDailyResult } from '../daily/DailyPage';
+import { ShareDialog, type ShareSource } from '../share/ShareDialog';
 import { CompletionCard } from './CompletionCard';
 import { GameView, type EngineSetup, type TimerSource } from './GameView';
 
@@ -72,6 +81,9 @@ export default function PlayPage() {
   const [completion, setCompletion] = useState<{ ms: number; best: number | null; isBest: boolean } | null>(null);
   const [showCompletion, setShowCompletion] = useState(true);
   const [confirmRestart, setConfirmRestart] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareSource, setShareSource] = useState<ShareSource | null>(null);
+  const uploaded = useRef<{ key: string; ref: Promise<ImageRef> } | null>(null);
   const autoPause = useSettings((s) => s.autoPause);
   const openSetup = useUi((s) => s.openSetup);
   const setHelpOpen = useUi((s) => s.setHelpOpen);
@@ -124,7 +136,7 @@ export default function PlayPage() {
       setPlaying(false);
       setPaused(false);
       setLoad({ status: 'ready', game, image, imageUrl });
-      document.title = `${game.title} — Jigsaw Explorer`;
+      document.title = pageTitle(game.title);
     })().catch(() => alive && setLoad({ status: 'error', message: 'This puzzle could not be loaded.' }));
     return () => {
       alive = false;
@@ -192,6 +204,13 @@ export default function PlayPage() {
     if (!game) return;
     const ms = Math.round(timer.elapsed());
     const { previous, isBest } = recordTime(game.image, game.total, game.spec.rotation, ms);
+    if (game.daily) {
+      const first = dailyResult(game.daily) === null;
+      recordDailyResult(game.daily, { ms, moves: movesRef.current, pieces: game.total, completedAt: Date.now() });
+      if (first) track('daily_complete');
+    } else {
+      track('solo_complete', puzzleLabel(game.image.kind === 'catalog' ? game.image : { kind: 'photo' }));
+    }
     gameRef.current = { ...game, completedAt: Date.now() };
     setCompletion({ ms, best: isBest ? ms : previous, isBest: isBest && previous !== null });
     setShowCompletion(true);
@@ -203,7 +222,8 @@ export default function PlayPage() {
     if (!game) return;
     const fresh: SavedGame = {
       ...game,
-      spec: { ...game.spec, seed: randomSeed() },
+      // The daily puzzle and challenges keep their cut; everything else gets a fresh one.
+      spec: game.daily || game.share?.challenge ? game.spec : { ...game.spec, seed: randomSeed() },
       groups: [],
       elapsedMs: 0,
       moves: 0,
@@ -232,6 +252,42 @@ export default function PlayPage() {
     }
     openSetup({ kind: 'local', upload: { blob, width: game.spec.width, height: game.spec.height, thumbnail: game.image.thumbnail, name: game.title } }, 'room');
   }, [openSetup]);
+
+  /** The picture as a server reference, uploading the player's own photo once. */
+  const resolveImage = useCallback(async (): Promise<ImageRef> => {
+    const game = gameRef.current;
+    if (!game) throw new Error('No puzzle loaded');
+    if (game.image.kind === 'catalog') return { kind: 'catalog', id: game.image.id };
+    const key = game.image.key;
+    if (uploaded.current?.key !== key) {
+      const ref = loadImageBlob(key).then(async (blob) => {
+        if (!blob) throw new Error('The photo for this puzzle is no longer available.');
+        return { kind: 'upload', id: (await uploadImage(blob)).id } as ImageRef;
+      });
+      ref.catch(() => (uploaded.current = null));
+      uploaded.current = { key, ref };
+    }
+    return uploaded.current.ref;
+  }, []);
+
+  const openShare = useCallback(
+    (challenge: boolean) => {
+      const game = gameRef.current;
+      if (!game) return;
+      setShareSource({
+        title: game.title,
+        cols: game.spec.cols,
+        rows: game.spec.rows,
+        rotation: game.spec.rotation,
+        seed: challenge ? game.spec.seed : undefined,
+        challenge: challenge && completion ? { ms: completion.ms, moves: movesRef.current } : undefined,
+        ownPhoto: game.image.kind === 'local',
+        resolveImage,
+      });
+      setShareOpen(true);
+    },
+    [completion, resolveImage],
+  );
 
   const setup = useMemo<EngineSetup | null>(() => {
     if (load.status !== 'ready') return null;
@@ -267,6 +323,91 @@ export default function PlayPage() {
   }
 
   const game = load.status === 'ready' ? load.game : null;
+  const completionCard = completion && showCompletion && game ? renderCompletion(game, completion) : null;
+
+  function renderCompletion(game: SavedGame, done: { ms: number; best: number | null; isBest: boolean }) {
+    const onDismiss = () => setShowCompletion(false);
+    const moves = String(movesRef.current);
+    if (game.daily) {
+      const key = game.daily;
+      const daily = dailyPuzzle(key);
+      const streak = dailyStats(key).currentStreak;
+      return (
+        <CompletionCard
+          title={`Daily puzzle #${daily.number} solved`}
+          subtitle={`${daily.title} · ${game.total} pieces`}
+          onDismiss={onDismiss}
+          stats={[
+            { label: 'Time', value: formatDuration(done.ms) },
+            { label: 'Moves', value: moves },
+            { label: 'Streak', value: `${streak} ${streak === 1 ? 'day' : 'days'}`, highlight: streak > 1 },
+          ]}
+          actions={
+            <>
+              <Button variant="primary" onClick={() => shareDailyResult(key)}>
+                <Share2 />
+                Share result
+              </Button>
+              <Button onClick={() => navigate('/puzzles')}>More puzzles</Button>
+            </>
+          }
+        />
+      );
+    }
+    const challenge = game.share?.challenge;
+    if (challenge) {
+      const from = game.share?.from ?? 'Your friend';
+      const diff = done.ms - challenge.ms;
+      const tie = Math.abs(diff) < 1000;
+      return (
+        <CompletionCard
+          title={tie ? 'It’s a tie!' : diff < 0 ? 'You won the challenge!' : `${from} wins this time`}
+          subtitle={tie ? `Same time as ${from}` : diff < 0 ? `${formatDuration(-diff)} faster than ${from}` : `${formatDuration(diff)} behind ${from}`}
+          onDismiss={onDismiss}
+          stats={[
+            { label: 'Your time', value: formatDuration(done.ms), highlight: !tie && diff < 0 },
+            { label: `${from}’s time`, value: formatDuration(challenge.ms) },
+            { label: 'Moves', value: moves },
+          ]}
+          actions={
+            <>
+              <Button variant="primary" onClick={() => openShare(true)}>
+                <Swords />
+                Challenge back
+              </Button>
+              <Button onClick={() => navigate('/puzzles')}>New puzzle</Button>
+            </>
+          }
+        />
+      );
+    }
+    return (
+      <CompletionCard
+        title="Puzzle complete"
+        subtitle={`${game.title} · ${game.total} pieces`}
+        onDismiss={onDismiss}
+        stats={[
+          { label: 'Time', value: formatDuration(done.ms) },
+          { label: 'Moves', value: moves },
+          done.best !== null
+            ? { label: done.isBest ? 'New best!' : 'Best time', value: formatDuration(done.best), highlight: done.isBest }
+            : { label: 'Pieces', value: String(game.total) },
+        ]}
+        actions={
+          <>
+            <Button variant="primary" onClick={() => navigate('/puzzles')}>
+              New puzzle
+            </Button>
+            <Button onClick={() => void restart()}>Play again</Button>
+            <Button variant="ghost" onClick={() => openShare(true)}>
+              <Swords />
+              Challenge a friend
+            </Button>
+          </>
+        }
+      />
+    );
+  }
   const subtitle = game ? `${game.total} pieces · ${difficultyLabel(game.total)}${game.spec.rotation ? ' · Rotation' : ''}` : '';
 
   return (
@@ -299,6 +440,7 @@ export default function PlayPage() {
           { label: 'Restart puzzle', icon: <RotateCcw />, onSelect: () => setConfirmRestart(true) },
           { label: 'New puzzle', icon: <Grid2x2Plus />, onSelect: () => navigate('/puzzles') },
           { label: 'Play this with friends', icon: <Users />, onSelect: () => void inviteFriends() },
+          { label: 'Send to a friend', icon: <Gift />, onSelect: () => openShare(false) },
           { label: '-', onSelect: () => undefined },
           { label: 'Controls & shortcuts', icon: <Keyboard />, onSelect: () => setHelpOpen(true), shortcut: '?' },
         ]}
@@ -315,31 +457,11 @@ export default function PlayPage() {
                 </div>
               </div>
             )}
-            {completion && showCompletion && game && (
-              <CompletionCard
-                title="Puzzle complete"
-                subtitle={`${game.title} · ${game.total} pieces`}
-                onDismiss={() => setShowCompletion(false)}
-                stats={[
-                  { label: 'Time', value: formatDuration(completion.ms) },
-                  { label: 'Moves', value: String(movesRef.current) },
-                  completion.best !== null
-                    ? { label: completion.isBest ? 'New best!' : 'Best time', value: formatDuration(completion.best), highlight: completion.isBest }
-                    : { label: 'Pieces', value: String(game.total) },
-                ]}
-                actions={
-                  <>
-                    <Button variant="primary" onClick={() => navigate('/puzzles')}>
-                      New puzzle
-                    </Button>
-                    <Button onClick={() => void restart()}>Play again</Button>
-                  </>
-                }
-              />
-            )}
+            {completionCard}
           </>
         }
       />
+      <ShareDialog open={shareOpen} onOpenChange={setShareOpen} source={shareSource} />
       <Dialog
         open={confirmRestart}
         onOpenChange={setConfirmRestart}

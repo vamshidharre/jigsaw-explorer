@@ -1,4 +1,3 @@
-import { getCatalogImage } from '../../shared/catalog';
 import {
   isValidRoomCode,
   type CreateRoomRequest,
@@ -9,6 +8,7 @@ import {
 import { PuzzleModel } from '../../shared/puzzle/model';
 import { gridForPieceCount, maxPiecesForImage, MIN_PIECES, type PuzzleSpec } from '../../shared/puzzle/spec';
 import { randomSeed } from '../../shared/rng';
+import { resolveImage } from '../images/resolveImage';
 import type { UploadStore } from '../images/uploadStore';
 import type { RoomStore } from '../persistence/roomStore';
 import { log } from '../logger';
@@ -81,19 +81,12 @@ export class RoomManager {
 
   /** Validates a puzzle request and builds a fresh puzzle for it. */
   buildPuzzle(req: NewPuzzleRequest): { puzzle: PuzzleInfo; model: PuzzleModel } {
-    let width: number;
-    let height: number;
-    let title: string;
-    if (req.image.kind === 'catalog') {
-      const img = getCatalogImage(req.image.id);
-      if (!img) throw new RoomError('Unknown puzzle image.', 400);
-      ({ width, height, title } = img);
-    } else {
-      const upload = this.uploads.get(req.image.id);
-      if (!upload) throw new RoomError('That uploaded image has expired. Please upload it again.', 400);
-      ({ width, height } = upload);
-      title = 'Custom puzzle';
+    const resolved = resolveImage(req.image, this.uploads);
+    if (!resolved) {
+      throw new RoomError(req.image.kind === 'catalog' ? 'Unknown puzzle image.' : 'That uploaded image has expired. Please upload it again.', 400);
     }
+    const { width, height } = resolved;
+    const title = resolved.title ?? 'Custom puzzle';
     const pieces = Math.max(MIN_PIECES, Math.min(maxPiecesForImage(width, height), req.pieces));
     const grid = gridForPieceCount(pieces, width, height);
     const spec: PuzzleSpec = { seed: randomSeed(), cols: grid.cols, rows: grid.rows, width, height, rotation: req.rotation };

@@ -2,6 +2,7 @@ import { Link, NavLink } from 'react-router';
 import { Settings } from 'lucide-react';
 import { IconButton } from '../ui/Button';
 import { useUi } from '../../app/uiStore';
+import { BRAND } from '../../../shared/brand';
 
 export function LogoMark({ size = 28 }: { size?: number }) {
   return (
@@ -17,9 +18,9 @@ export function LogoMark({ size = 28 }: { size?: number }) {
 
 export function Logo() {
   return (
-    <Link to="/" className="logo" aria-label="Jigsaw Explorer home">
+    <Link to="/" className="logo" aria-label={`${BRAND.name} home`}>
       <LogoMark />
-      <span className="logo__text">Jigsaw Explorer</span>
+      <span className="logo__text">{BRAND.name}</span>
     </Link>
   );
 }
@@ -31,6 +32,9 @@ export function SiteHeader() {
       <div className="site-header__inner">
         <Logo />
         <nav className="site-nav" aria-label="Main">
+          <NavLink to="/daily" className="site-nav__link">
+            Daily
+          </NavLink>
           <NavLink to="/puzzles" className="site-nav__link">
             Puzzles
           </NavLink>
@@ -50,8 +54,10 @@ export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="site-footer__inner">
-        <span>Jigsaw Explorer</span>
+        <span>{BRAND.name}</span>
         <nav aria-label="Footer">
+          <Link to="/daily">Daily puzzle</Link>
+          <Link to="/puzzles">All puzzles</Link>
           <Link to="/credits">Image credits</Link>
         </nav>
       </div>

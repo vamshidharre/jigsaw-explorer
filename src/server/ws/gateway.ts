@@ -7,6 +7,7 @@ import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { PROTOCOL_VERSION, type ClientMessage, type ServerMessage } from '../../shared/protocol';
+import type { ServerEvent } from '../../shared/analytics';
 import { log } from '../logger';
 import type { Connection, Room } from '../rooms/Room';
 import { RoomError, type RoomManager } from '../rooms/RoomManager';
@@ -22,6 +23,8 @@ export interface GatewayOptions {
   allowedOrigins: string[];
   maxConnectionsPerIp: number;
   trustProxy: number;
+  /** Usage counting hook (new players joining, rooms finishing a puzzle). */
+  onEvent?: (event: ServerEvent) => void;
 }
 
 let nextConnId = 1;
@@ -113,13 +116,16 @@ export function attachGateway(server: Server, rooms: RoomManager, options: Gatew
         if (!target) return fail('ROOM_NOT_FOUND', 'This room does not exist or has expired.', 4004);
         const result = target.join(conn, msg);
         if (!result.ok) return fail(result.code, result.message, 4003);
+        if (!result.resumed) options.onEvent?.('room_join');
         room = target;
         clearTimeout(helloTimer);
         return;
       }
 
       try {
+        const wasComplete = room.completion !== null;
         room.handle(conn, msg, (req) => rooms.buildPuzzle(req));
+        if (!wasComplete && room.completion !== null) options.onEvent?.('room_complete');
       } catch (err) {
         if (err instanceof RoomError) conn.send({ t: 'error', code: 'BAD_REQUEST', message: err.message, fatal: false });
         else {

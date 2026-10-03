@@ -234,3 +234,71 @@ export interface UploadResponse {
   width: number;
   height: number;
 }
+
+// ---------------------------------------------------------------------------
+// Share links: a puzzle (picture, cut and settings) someone sends to a friend,
+// optionally as a challenge carrying the sender's time.
+
+export const SHARE_ID_PATTERN = /^[a-z0-9]{10}$/;
+export const MAX_SHARE_MESSAGE = 140;
+export const MAX_SHARE_TITLE = 60;
+
+export interface ShareChallenge {
+  ms: number;
+  moves: number;
+}
+
+export interface CreateShareRequest {
+  image: ImageRef;
+  /** The exact grid, so a challenge gets the same cut as the sender's puzzle. */
+  cols: number;
+  rows: number;
+  rotation: boolean;
+  /** Reuse a specific cut (challenges); a random one otherwise. */
+  seed?: number;
+  /** Title for uploaded photos; catalogue pictures keep their own. */
+  title?: string;
+  from?: string;
+  message?: string;
+  challenge?: ShareChallenge;
+}
+
+export interface ShareInfo {
+  id: string;
+  title: string;
+  image: ImageRef;
+  width: number;
+  height: number;
+  seed: number;
+  cols: number;
+  rows: number;
+  rotation: boolean;
+  from: string | null;
+  message: string | null;
+  challenge: ShareChallenge | null;
+  createdAt: number;
+  expiresAt: number;
+}
+
+export interface CreateShareResponse {
+  id: string;
+  expiresAt: number;
+}
+
+/** Single-line free text: strips control characters, collapses whitespace, clamps length. */
+export function sanitizeText(input: string, maxLength: number): string {
+  return input
+    .normalize('NFC')
+    .replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength)
+    .trim();
+}
+
+/** Accepts a bare id or a full `/s/<id>` link. */
+export function normalizeShareId(input: string): string {
+  const trimmed = input.trim();
+  const fromLink = /\/s\/([A-Za-z0-9]+)/.exec(trimmed);
+  return (fromLink ? fromLink[1]! : trimmed).toLowerCase();
+}

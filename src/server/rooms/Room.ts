@@ -92,7 +92,7 @@ export const PLAYER_COLORS = [
 
 const DEFAULT_TIMINGS: RoomTimings = { reconnectGraceMs: 60_000, idleAfterMs: 90_000, holdTimeoutMs: 30_000 };
 
-export type JoinResult = { ok: true; playerId: string } | { ok: false; code: ErrorCode; message: string };
+export type JoinResult = { ok: true; playerId: string; resumed: boolean } | { ok: false; code: ErrorCode; message: string };
 
 export type HelloMessage = Extract<ClientMessage, { t: 'hello' }>;
 
@@ -303,7 +303,7 @@ export class Room {
     if (!resumed || wasOffline) this.broadcast({ t: 'event', event }, player.id);
     this.broadcastPlayers();
     if (hostChanged) this.broadcast({ t: 'room', room: this.roomInfo() });
-    return { ok: true, playerId: player.id };
+    return { ok: true, playerId: player.id, resumed };
   }
 
   /** Called when a player's socket closes without an explicit leave. */

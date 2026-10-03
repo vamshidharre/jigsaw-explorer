@@ -24,6 +24,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': `http://localhost:${API_PORT}`,
+      '/og': `http://localhost:${API_PORT}`,
+      '/sitemap.xml': `http://localhost:${API_PORT}`,
+      '/robots.txt': `http://localhost:${API_PORT}`,
       '/ws': { target: `ws://localhost:${API_PORT}`, ws: true },
     },
   },

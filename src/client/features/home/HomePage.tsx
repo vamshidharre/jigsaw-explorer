@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { ArrowRight, Image as ImageIcon, Puzzle, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import { pageTitle } from '../../../shared/brand';
 import { CATALOG, catalogImageUrl, catalogThumbUrl, getCatalogImage, FEATURED_IMAGE_ID } from '../../../shared/catalog';
 import { PageShell } from '../../components/layout/SiteHeader';
+import { DailyCard } from '../daily/DailyCard';
 import { PuzzleArt } from '../../components/PuzzleArt';
 import { PuzzleCard } from '../../components/PuzzleCard';
 import { Button, IconButton } from '../../components/ui/Button';
@@ -19,7 +21,7 @@ export function HomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = 'Jigsaw Explorer — Online jigsaw puzzles, solo or together';
+    document.title = pageTitle();
   }, []);
 
   return (
@@ -59,6 +61,10 @@ export function HomePage() {
             ]}
           />
         </div>
+      </section>
+
+      <section className="section section--tight" aria-label="Daily puzzle">
+        <DailyCard />
       </section>
 
       <ContinueSection />

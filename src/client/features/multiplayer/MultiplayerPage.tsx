@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowRight, Link2, Users } from 'lucide-react';
+import { pageTitle } from '../../../shared/brand';
 import { isValidRoomCode, normalizeRoomCode, ROOM_CODE_LENGTH, sanitizeName, MAX_NAME_LENGTH } from '../../../shared/protocol';
 import { PageShell } from '../../components/layout/SiteHeader';
 import { Button } from '../../components/ui/Button';
@@ -17,7 +18,7 @@ export function MultiplayerPage() {
   const [name, setName] = useState(playerName);
 
   useEffect(() => {
-    document.title = 'Play together — Jigsaw Explorer';
+    document.title = pageTitle('Play together');
   }, []);
 
   const saveName = () => {

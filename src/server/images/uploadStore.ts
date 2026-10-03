@@ -38,8 +38,18 @@ export class UploadStore {
   private readonly dir: string;
   private readonly meta = new Map<string, UploadMeta>();
 
-  constructor(dataDir: string) {
+  /** `maxTotalBytes` caps the disk space all stored photos may use together. */
+  constructor(
+    dataDir: string,
+    private readonly maxTotalBytes = Infinity,
+  ) {
     this.dir = path.join(dataDir, 'uploads');
+  }
+
+  get totalBytes(): number {
+    let total = 0;
+    for (const m of this.meta.values()) total += m.bytes;
+    return total;
   }
 
   async init(): Promise<void> {
@@ -85,6 +95,11 @@ export class UploadStore {
     }
     if (Math.max(width / height, height / width) > MAX_ASPECT) {
       throw new UploadError('That image is too narrow. Use an image with an aspect ratio up to 4:1.');
+    }
+
+    if (this.totalBytes + output.data.length > this.maxTotalBytes) {
+      log.warn('upload storage full', { totalBytes: this.totalBytes });
+      throw new UploadError('Photo storage is full right now. Please try again later or pick a picture from the gallery.', 503);
     }
 
     const meta: UploadMeta = { id: newUploadId(), width, height, bytes: output.data.length, createdAt: Date.now() };

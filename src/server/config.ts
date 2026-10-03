@@ -10,6 +10,27 @@ function int(name: string, fallback: number): number {
 
 const isProduction = process.env.NODE_ENV === 'production';
 
+/** PUBLIC_URL without a trailing slash, e.g. `https://knobble.app`. */
+function publicUrl(): string | null {
+  const raw = (process.env.PUBLIC_URL ?? '').trim();
+  if (!raw) return null;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error('PUBLIC_URL must be an absolute URL such as https://knobble.app');
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('PUBLIC_URL must start with http:// or https://');
+  return url.origin;
+}
+
+function statsToken(): string | null {
+  const raw = (process.env.STATS_TOKEN ?? '').trim();
+  if (!raw) return null;
+  if (raw.length < 12) throw new Error('STATS_TOKEN must be at least 12 characters');
+  return raw;
+}
+
 export const config = {
   isProduction,
   port: int('PORT', 3000),
@@ -29,5 +50,16 @@ export const config = {
   reconnectGraceMs: int('RECONNECT_GRACE_SECONDS', 60) * 1000,
   uploadMaxBytes: int('UPLOAD_MAX_MB', 15) * 1024 * 1024,
   uploadTtlMs: int('UPLOAD_TTL_HOURS', 48) * 3_600_000,
+  /** Disk space all stored photos may use together. */
+  uploadStorageBytes: int('UPLOAD_STORAGE_MB', 800) * 1024 * 1024,
   maxConnectionsPerIp: int('MAX_CONNECTIONS_PER_IP', 24),
+  /** Canonical site origin for link previews and the sitemap (falls back to the request host). */
+  publicUrl: publicUrl(),
+  /** How long a shared puzzle link stays valid. */
+  shareTtlMs: int('SHARE_TTL_DAYS', 30) * 86_400_000,
+  maxShares: int('MAX_SHARES', 50_000),
+  /** Cookie-free usage counting; set ANALYTICS=off to disable. */
+  analytics: (process.env.ANALYTICS ?? 'on').toLowerCase() !== 'off',
+  /** Access key for the /stats page; usage stats cannot be viewed without it. */
+  statsToken: statsToken(),
 } as const;

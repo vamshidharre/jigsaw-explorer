@@ -79,3 +79,46 @@ export async function lockedCount(page: Page): Promise<number> {
     return n;
   });
 }
+
+/** Builds a real PNG in the browser so the test needs no fixture files. */
+export async function makePng(page: Page, w: number, h: number): Promise<Buffer> {
+  const b64 = await page.evaluate(
+    ([w, h]) => {
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const ctx = c.getContext('2d')!;
+      const g = ctx.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, '#ff7a59');
+      g.addColorStop(0.5, '#ffd166');
+      g.addColorStop(1, '#118ab2');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < 40; i++) {
+        ctx.fillStyle = `hsl(${i * 37} 70% 50%)`;
+        ctx.beginPath();
+        ctx.arc((i * 97) % w, (i * 53) % h, 20 + (i % 5) * 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      return c.toDataURL('image/png').split(',')[1]!;
+    },
+    [w, h],
+  );
+  return Buffer.from(b64, 'base64');
+}
+
+/**
+ * Places every piece on the board. Pieces hidden under others cannot be
+ * grabbed on the first pass, so it keeps going until everything is locked.
+ */
+export async function solveAll(page: Page) {
+  const total = await pieceCount(page);
+  for (let pass = 0; pass < 6 && (await lockedCount(page)) < total; pass++) {
+    for (let p = 0; p < total; p++) {
+      if ((await debugPiece(page, p)).locked) continue;
+      if (!(await grabPoint(page, p))) continue;
+      await dragPieceHome(page, p);
+    }
+  }
+  await expect.poll(() => lockedCount(page)).toBe(total);
+}

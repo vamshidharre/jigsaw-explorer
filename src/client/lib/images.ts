@@ -125,3 +125,17 @@ export async function processUpload(file: File): Promise<ProcessedUpload> {
 function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 }
+
+/** Small JPEG data URL of an image blob, for saved-puzzle lists. */
+export async function thumbnailFromBlob(blob: Blob, max = 320): Promise<string> {
+  const decoded = await decodeBlob(blob);
+  const scale = Math.min(1, max / Math.max(decoded.width, decoded.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(decoded.width * scale));
+  canvas.height = Math.max(1, Math.round(decoded.height * scale));
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new ImageLoadError('Your browser could not process this image.');
+  ctx.drawImage(decoded.source, 0, 0, canvas.width, canvas.height);
+  if ('close' in decoded.source) decoded.source.close();
+  return canvas.toDataURL('image/jpeg', 0.72);
+}

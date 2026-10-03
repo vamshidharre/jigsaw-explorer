@@ -77,6 +77,12 @@
   font-size: 0.875rem;
 }
 
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
 .site-footer a {
   color: var(--text-2);
   text-decoration: none;
@@ -879,9 +885,16 @@
   color: var(--text-2);
 }
 
-.credits__item strong {
+.credits__title {
   color: var(--text);
   font-weight: 600;
+  text-decoration: none;
+  justify-self: start;
+  border-radius: var(--radius-xs);
+}
+
+.credits__title:hover {
+  text-decoration: underline;
 }
 
 .credits__license {

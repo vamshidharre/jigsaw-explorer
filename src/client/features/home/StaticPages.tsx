@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router';
+import { pageTitle } from '../../../shared/brand';
 import { CATALOG, CATEGORIES, catalogThumbUrl } from '../../../shared/catalog';
 import { PageShell } from '../../components/layout/SiteHeader';
 import { StateScreen } from '../../components/layout/PageLoader';
 
 export function CreditsPage() {
   useEffect(() => {
-    document.title = 'Image credits — Jigsaw Explorer';
+    document.title = pageTitle('Image credits');
   }, []);
   return (
     <PageShell>
@@ -26,7 +27,9 @@ export function CreditsPage() {
               <li key={img.id} className="credits__item">
                 <img src={catalogThumbUrl(img.id)} alt="" loading="lazy" style={{ backgroundColor: img.color }} />
                 <div>
-                  <strong>{img.title}</strong>
+                  <Link to={`/puzzle/${img.id}`} className="credits__title">
+                    {img.title}
+                  </Link>
                   <span>{img.credit}</span>
                   <span className="credits__license">{img.license}</span>
                 </div>
@@ -41,7 +44,7 @@ export function CreditsPage() {
 
 export function NotFoundPage() {
   useEffect(() => {
-    document.title = 'Page not found — Jigsaw Explorer';
+    document.title = pageTitle('Page not found');
   }, []);
   return (
     <PageShell>

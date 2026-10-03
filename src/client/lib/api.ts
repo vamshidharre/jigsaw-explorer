@@ -1,4 +1,12 @@
-import type { CreateRoomRequest, CreateRoomResponse, RoomSummary, UploadResponse } from '../../shared/protocol';
+import type {
+  CreateRoomRequest,
+  CreateRoomResponse,
+  CreateShareRequest,
+  CreateShareResponse,
+  RoomSummary,
+  ShareInfo,
+  UploadResponse,
+} from '../../shared/protocol';
 
 export class ApiError extends Error {
   constructor(
@@ -44,4 +52,21 @@ export function getRoom(code: string): Promise<RoomSummary> {
 
 export function uploadImage(blob: Blob): Promise<UploadResponse> {
   return request('/api/uploads', { method: 'POST', headers: { 'content-type': blob.type || 'application/octet-stream' }, body: blob }, 60_000);
+}
+
+export function createShare(req: CreateShareRequest): Promise<CreateShareResponse> {
+  return request('/api/shares', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req) });
+}
+
+export function getShare(id: string): Promise<ShareInfo> {
+  return request(`/api/shares/${encodeURIComponent(id)}`);
+}
+
+export interface StatsResponse {
+  collecting: boolean;
+  days: Array<{ day: string; counts: Record<string, number> }>;
+}
+
+export function getStats(token: string, days: number): Promise<StatsResponse> {
+  return request(`/api/stats?days=${days}`, { headers: { authorization: `Bearer ${token}` } });
 }

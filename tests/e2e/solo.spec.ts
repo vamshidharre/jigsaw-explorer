@@ -11,7 +11,7 @@ test('home page renders without console errors', async ({ page }) => {
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Piece it together');
-  await page.getByRole('link', { name: 'Puzzles' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Puzzles' }).click();
   await expect(page.getByRole('heading', { name: 'Choose a puzzle' })).toBeVisible();
   await page.getByRole('button', { name: 'Fine art' }).click();
   await expect(page.getByRole('button', { name: /^The Starry Night\./ })).toBeVisible();

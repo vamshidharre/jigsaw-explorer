@@ -4,7 +4,7 @@
  * stored alongside as blobs and never uploaded anywhere.
  */
 import { createStore, del, get, set, values, type UseStore } from 'idb-keyval';
-import { fromWire, toWire, type WireGroup } from '../../shared/protocol';
+import { fromWire, toWire, type ShareChallenge, type WireGroup } from '../../shared/protocol';
 import type { GroupState } from '../../shared/puzzle/model';
 import type { PuzzleSpec } from '../../shared/puzzle/spec';
 
@@ -26,6 +26,10 @@ export interface SavedGame {
   createdAt: number;
   updatedAt: number;
   completedAt: number | null;
+  /** Set for the daily puzzle: its date key. */
+  daily?: string;
+  /** Set when the puzzle came from a share link. */
+  share?: { id: string; from: string | null; challenge: ShareChallenge | null };
 }
 
 const MAX_SAVED = 24;

@@ -14,6 +14,7 @@ const child = spawn(process.execPath, ['dist/server/index.js'], {
     TRUST_PROXY: '0',
     RECONNECT_GRACE_SECONDS: process.env.RECONNECT_GRACE_SECONDS ?? '8',
     LOG_LEVEL: 'warn',
+    STATS_TOKEN: 'e2e-stats-access-key',
   },
 });
 const stop = () => child.kill('SIGTERM');

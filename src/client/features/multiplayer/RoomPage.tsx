@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Grid2x2Plus, Keyboard, LogOut, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import { pageTitle } from '../../../shared/brand';
 import { getCatalogImage } from '../../../shared/catalog';
 import {
   fromWire,
@@ -40,7 +41,7 @@ export default function RoomPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = `Room ${code} — Jigsaw Explorer`;
+    document.title = pageTitle(`Room ${code}`);
   }, [code]);
 
   if (!isValidRoomCode(code)) {

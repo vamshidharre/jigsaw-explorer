@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { useSearchParams } from 'react-router';
 import { ImagePlus } from 'lucide-react';
 import { toast } from 'sonner';
+import { pageTitle } from '../../../shared/brand';
 import { CATALOG, CATEGORIES, type CategoryId } from '../../../shared/catalog';
 import { PageShell } from '../../components/layout/SiteHeader';
 import { PuzzleCard } from '../../components/PuzzleCard';
@@ -12,7 +13,10 @@ import { ImageLoadError, processUpload } from '../../lib/images';
 export function LibraryPage() {
   const [params] = useSearchParams();
   const mode = params.get('mode') === 'room' ? 'room' : 'solo';
-  const [category, setCategory] = useState<CategoryId | 'all'>('all');
+  const [category, setCategory] = useState<CategoryId | 'all'>(() => {
+    const requested = params.get('category');
+    return CATEGORIES.find((c) => c.id === requested)?.id ?? 'all';
+  });
   const openSetup = useUi((s) => s.openSetup);
   const [processing, setProcessing] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -20,7 +24,7 @@ export function LibraryPage() {
   const dragDepth = useRef(0);
 
   useEffect(() => {
-    document.title = mode === 'room' ? 'Choose a puzzle for your room — Jigsaw Explorer' : 'Puzzles — Jigsaw Explorer';
+    document.title = pageTitle(mode === 'room' ? 'Choose a puzzle for your room' : 'Puzzles');
   }, [mode]);
 
   const images = useMemo(() => (category === 'all' ? CATALOG : CATALOG.filter((i) => i.category === category)), [category]);

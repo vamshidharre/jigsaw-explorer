@@ -1,6 +1,15 @@
 /** Runtime validation for everything a client can send. */
 import { z } from 'zod';
-import { MAX_NAME_LENGTH, MAX_ROOM_CAPACITY, MIN_ROOM_CAPACITY, ROOM_CODE_PATTERN, UPLOAD_ID_PATTERN } from '../../shared/protocol';
+import { CLIENT_EVENTS } from '../../shared/analytics';
+import {
+  MAX_NAME_LENGTH,
+  MAX_ROOM_CAPACITY,
+  MAX_SHARE_MESSAGE,
+  MAX_SHARE_TITLE,
+  MIN_ROOM_CAPACITY,
+  ROOM_CODE_PATTERN,
+  UPLOAD_ID_PATTERN,
+} from '../../shared/protocol';
 import { MAX_PIECES, MIN_PIECES } from '../../shared/puzzle/spec';
 
 const coord = z.number().min(-1e6).max(1e6);
@@ -54,3 +63,25 @@ export const clientMessageSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('ping'), ts: z.number() }),
   z.object({ t: z.literal('leave') }),
 ]);
+
+export const createShareSchema = z.object({
+  image: imageRefSchema,
+  cols: z.number().int().min(2).max(MAX_PIECES / 2),
+  rows: z.number().int().min(2).max(MAX_PIECES / 2),
+  rotation: z.boolean(),
+  seed: z.number().int().min(0).max(0xffffffff).optional(),
+  title: z.string().max(MAX_SHARE_TITLE * 4).optional(),
+  from: z.string().max(MAX_NAME_LENGTH * 4).optional(),
+  message: z.string().max(MAX_SHARE_MESSAGE * 4).optional(),
+  challenge: z
+    .object({
+      ms: z.number().int().min(1000).max(7 * 86_400_000),
+      moves: z.number().int().min(0).max(1_000_000),
+    })
+    .optional(),
+});
+
+export const analyticsEventSchema = z.object({
+  e: z.enum(CLIENT_EVENTS),
+  l: z.string().max(120).optional(),
+});

@@ -1,32 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { lockedCount, pieceCount, prepare, waitForEngine, dragPieceHome } from './helpers';
-
-/** Builds a real PNG in the browser so the test needs no fixture files. */
-async function makePng(page: Page, w: number, h: number): Promise<Buffer> {
-  const b64 = await page.evaluate(
-    ([w, h]) => {
-      const c = document.createElement('canvas');
-      c.width = w;
-      c.height = h;
-      const ctx = c.getContext('2d')!;
-      const g = ctx.createLinearGradient(0, 0, w, h);
-      g.addColorStop(0, '#ff7a59');
-      g.addColorStop(0.5, '#ffd166');
-      g.addColorStop(1, '#118ab2');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, w, h);
-      for (let i = 0; i < 40; i++) {
-        ctx.fillStyle = `hsl(${i * 37} 70% 50%)`;
-        ctx.beginPath();
-        ctx.arc((i * 97) % w, (i * 53) % h, 20 + (i % 5) * 8, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      return c.toDataURL('image/png').split(',')[1]!;
-    },
-    [w, h],
-  );
-  return Buffer.from(b64, 'base64');
-}
+import { expect, test } from '@playwright/test';
+import { dragPieceHome, lockedCount, makePng, pieceCount, prepare, waitForEngine } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await prepare(page, { playerName: 'Uploader' });

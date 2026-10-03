@@ -21,6 +21,10 @@ export function newUploadId(): string {
   return `u${randomString(LOWER_ALNUM, 20)}`;
 }
 
+export function newShareId(): string {
+  return randomString(LOWER_ALNUM, 10);
+}
+
 export function newSecret(): string {
   return randomBytes(24).toString('base64url');
 }

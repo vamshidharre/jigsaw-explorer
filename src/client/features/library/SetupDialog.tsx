@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { RotateCw, Users } from 'lucide-react';
+import { Gift, RotateCw, Users } from 'lucide-react';
+import { puzzleLabel } from '../../../shared/analytics';
 import { catalogImageUrl, getCatalogImage } from '../../../shared/catalog';
 import { DEFAULT_ROOM_CAPACITY, MAX_ROOM_CAPACITY, MIN_ROOM_CAPACITY, type ImageRef } from '../../../shared/protocol';
 import { DIFFICULTY_PRESETS, gridForPieceCount, maxPiecesForImage, MIN_PIECES, type PuzzleSpec } from '../../../shared/puzzle/spec';
@@ -10,7 +11,9 @@ import { Button } from '../../components/ui/Button';
 import { Slider, Switch } from '../../components/ui/Controls';
 import { useUi, type SetupMode, type SetupTarget } from '../../app/uiStore';
 import { useRoom } from '../multiplayer/roomStore';
+import { track } from '../../lib/analytics';
 import { ApiError, createRoom, uploadImage } from '../../lib/api';
+import { ShareDialog, type ShareSource } from '../share/ShareDialog';
 import { hostKeyStorageKey } from '../../net/RoomConnection';
 import { newGameId, pruneGames, saveGame, saveImage, type SavedGame, type SavedImage } from '../../persistence/savedGames';
 
@@ -95,9 +98,28 @@ function SetupContent({ target, mode, onDone }: { target: SetupTarget; mode: Set
   const roomActions = useRoom((s) => s.actions);
   const [error, setError] = useState<string | null>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const uploaded = useRef<Promise<ImageRef> | null>(null);
 
   const grid = preset === 'custom' ? gridForPieceCount(custom, info.width, info.height) : presets.find((p) => p.id === preset)!.grid;
   const count = grid.cols * grid.rows;
+
+  /** Uploads the player's photo once, however many rooms or links they create from this dialog. */
+  const imageRef = (): Promise<ImageRef> => {
+    if (target.kind === 'catalog') return Promise.resolve({ kind: 'catalog', id: target.id });
+    uploaded.current ??= uploadImage(target.upload.blob).then((u) => ({ kind: 'upload', id: u.id }) as ImageRef);
+    uploaded.current.catch(() => (uploaded.current = null));
+    return uploaded.current;
+  };
+
+  const shareSource: ShareSource = {
+    title: info.title,
+    cols: grid.cols,
+    rows: grid.rows,
+    rotation,
+    ownPhoto: target.kind === 'local',
+    resolveImage: imageRef,
+  };
 
   const remember = () => {
     try {
@@ -139,6 +161,7 @@ function SetupContent({ target, mode, onDone }: { target: SetupTarget; mode: Set
       };
       await saveGame(game);
       void pruneGames();
+      track('solo_start', puzzleLabel(image.kind === 'catalog' ? image : { kind: 'photo' }));
       onDone();
       navigate(`/play/${id}`);
     } catch {
@@ -152,9 +175,7 @@ function SetupContent({ target, mode, onDone }: { target: SetupTarget; mode: Set
     setError(null);
     remember();
     try {
-      let image: ImageRef;
-      if (target.kind === 'catalog') image = { kind: 'catalog', id: target.id };
-      else image = { kind: 'upload', id: (await uploadImage(target.upload.blob)).id };
+      const image = await imageRef();
       const aspect = window.innerWidth / Math.max(1, window.innerHeight);
       const room = await createRoom({ image, pieces: count, rotation, capacity, aspect });
       try {
@@ -179,9 +200,7 @@ function SetupContent({ target, mode, onDone }: { target: SetupTarget; mode: Set
     setError(null);
     remember();
     try {
-      let image: ImageRef;
-      if (target.kind === 'catalog') image = { kind: 'catalog', id: target.id };
-      else image = { kind: 'upload', id: (await uploadImage(target.upload.blob)).id };
+      const image = await imageRef();
       roomActions.newPuzzle({ image, pieces: count, rotation, aspect: window.innerWidth / Math.max(1, window.innerHeight) });
       onDone();
     } catch (err) {
@@ -288,6 +307,10 @@ function SetupContent({ target, mode, onDone }: { target: SetupTarget; mode: Set
                 <Users />
                 Play with friends
               </Button>
+              <Button variant="ghost" block disabled={busy !== null} onClick={() => setShareOpen(true)}>
+                <Gift />
+                Send to a friend
+              </Button>
             </>
           ) : mode === 'room' ? (
             <Button variant="primary" size="lg" block loading={busy === 'room'} disabled={busy !== null} onClick={() => void startRoom()}>
@@ -300,6 +323,7 @@ function SetupContent({ target, mode, onDone }: { target: SetupTarget; mode: Set
             </Button>
           )}
         </div>
+        <ShareDialog open={shareOpen} onOpenChange={setShareOpen} source={shareSource} />
         {target.kind === 'local' && (
           <p className="setup__note">
             {mode === 'solo' ? 'Solo puzzles keep your photo on this device. ' : ''}

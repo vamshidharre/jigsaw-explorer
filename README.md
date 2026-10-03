@@ -1,4 +1,4 @@
-# Jigsaw Explorer
+# Knobble
 
 Online jigsaw puzzles you can solve on your own or together with friends in
 real time. Pick a picture (or upload your own), choose anything from 6 to
@@ -31,6 +31,25 @@ every move is arbitrated on the server and broadcast to everyone in the room.
 - Automatic reconnection with backoff; a refresh keeps your seat; a dropped network shows a banner and pauses interaction until the state is re-synchronised.
 - Rooms persist to disk and survive a server restart; empty rooms expire.
 
+**Daily puzzle**
+- One puzzle per day (`/daily`): everyone gets the same picture cut the same way (48 pieces on weekdays, about 100 at weekends), cycling through the whole gallery before repeating.
+- Streaks, best streak, best time and a week strip; the first completion of the day counts.
+- "Share result" copies (or, on phones, shares) a spoiler-free text such as `Knobble daily #276 🧩 / 100 pieces in 6:12 / 🔥 3-day streak`.
+
+**Share links and challenges**
+- "Send to a friend" (setup dialog or in-game menu) creates a link to a puzzle, with an optional name and message. Own photos are uploaded once and kept as long as the link (30 days). The landing page blurs the picture until the friend plays it.
+- "Challenge a friend" on the completion card sends the same puzzle with the exact same cut and your time; the friend's completion card compares the two times and offers "Challenge back".
+- Friends can also "Solve it together", which opens a multiplayer room with the same picture.
+
+**Link previews and search**
+- Every page gets its own title, description, canonical URL and Open Graph / Twitter card tags, injected by the server into `index.html`. Room invites read "Join my *Orchid Bloom* jigsaw puzzle — 60 pieces, 40% done…".
+- Preview images (1200×630) are rendered on the server: the picture with jigsaw cuts and one lifted piece (blurred for gifts).
+- One page per gallery picture (`/puzzle/:id`), `sitemap.xml` and `robots.txt`. Rooms, shares and saved games are marked `noindex`.
+
+**Usage stats (no cookies)**
+- The app counts a small, fixed set of events per day (visits with the referring site, page views by route template, puzzles started/finished, rooms, joins, daily solves, links shared/opened). No cookies, user ids, IP addresses or full URLs are stored; browsers sending Do Not Track or Global Privacy Control are not counted.
+- The owner reads them at `/stats` with the `STATS_TOKEN` access key.
+
 **Persistence**
 - Settings and theme (localStorage), solo puzzles with progress, timer and moves (IndexedDB), personal best times. Home page lists unfinished puzzles with remove/undo.
 
@@ -54,15 +73,22 @@ src/
     puzzle/model.ts      Groups, transforms, snapping/merging, layout, completion
     protocol.ts          WebSocket message types, room codes, name sanitising
     catalog.ts           Gallery metadata (generated JSON + helpers)
+    daily.ts             Daily puzzle selection, date keys, streaks
+    analytics.ts         Usage event names and label validation
+    brand.ts             Product name and copy (rename the site here)
   client/
     engine/              Canvas engine (no React): GameEngine, Renderer, PieceAtlas, Camera, InputController
-    features/            Screens: home, library (+ setup dialog), game, multiplayer, settings
+    features/            Screens: home, library (+ setup dialog, puzzle pages), game, daily, share, multiplayer, settings, stats
     components/          UI primitives (Radix-based), layout, puzzle cards, hero art
     net/RoomConnection   Reconnecting WebSocket client
-    persistence/         IndexedDB saved games, personal bests
-    lib/                 Image loading/processing, API client, sound synthesis, formatting
+    persistence/         IndexedDB saved games, personal bests, daily results
+    lib/                 Image loading/processing, API client, sound synthesis, formatting, sharing, usage beacons
   server/
     http/app.ts          REST API, static files, security headers, rate limits
+    http/pages.ts        Per-route meta tags, sitemap, robots.txt
+    images/ogImage.ts    Link-preview image rendering (sharp)
+    shares/ShareStore    Share links (JSON files with expiry)
+    analytics/           Daily usage counters (JSON file)
     ws/gateway.ts        WebSocket upgrade, origin check, handshake, validation, heartbeats
     rooms/Room.ts        Authoritative room state and rules
     rooms/RoomManager.ts Room creation, expiry, persistence scheduling
@@ -117,6 +143,10 @@ trigger canvas redraws. React never re-renders during a drag.
 
 All settings persist across reloads and can be reset to defaults.
 
+## Renaming the site
+
+The name and tagline live in `src/shared/brand.ts` (page titles, header, link previews, share text). The static files `index.html` (default title and noscript text) and `public/manifest.webmanifest` carry the name as well. Browser storage keys keep their old `jigsaw.*` prefix on purpose so players do not lose saved puzzles, settings or streaks.
+
 ## Running locally
 
 Requirements: Node 20.11+ (22 recommended).
@@ -154,15 +184,20 @@ snapshots to `DATA_DIR`), so run **one instance**.
 
 `render.yaml` is a Blueprint for a Node web service with a 1 GB persistent
 disk at `/var/data`. In Render: *New → Blueprint*, select the repository and
-apply. Without a disk (e.g. on the free plan) the app still works, but rooms and
-uploaded photos do not survive deploys. Render's proxy supports WebSockets with
-no extra configuration.
+apply. Without a disk (e.g. on the free plan) the app still works, but rooms,
+uploaded photos, share links and usage counts do not survive deploys. Render's
+proxy supports WebSockets with no extra configuration. The Blueprint generates a
+random `STATS_TOKEN` (shown in the service's Environment tab); add `PUBLIC_URL`
+once the site has its own domain.
+
+An existing service created by hand keeps its own name and URL; the `name` in
+`render.yaml` only matters when the Blueprint creates the service.
 
 ### Docker
 
 ```bash
-docker build -t jigsaw-explorer .
-docker run -p 3000:3000 -v jigsaw-data:/data jigsaw-explorer
+docker build -t knobble .
+docker run -p 3000:3000 -v knobble-data:/data -e PUBLIC_URL=https://your.domain -e STATS_TOKEN=change-me-to-something-long knobble
 ```
 
 The image sets `TRUST_PROXY=1`; set it to `0` if the container is exposed
@@ -183,8 +218,14 @@ limiting cannot be spoofed via `X-Forwarded-For`.
 | `RECONNECT_GRACE_SECONDS` | `60` | How long a disconnected player keeps their seat |
 | `UPLOAD_MAX_MB` | `15` | Maximum upload size |
 | `UPLOAD_TTL_HOURS` | `48` | Minimum age before unused uploads are deleted |
+| `UPLOAD_STORAGE_MB` | `800` | Total disk space for stored photos; new uploads are refused (503) when it is full |
 | `MAX_CONNECTIONS_PER_IP` | `24` | Concurrent WebSockets per client IP |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` (JSON lines on stdout/stderr) |
+| `PUBLIC_URL` | — | Canonical origin, e.g. `https://knobble.app`, for link previews, canonical URLs and the sitemap. Without it the request's host is used. Set it in production. |
+| `STATS_TOKEN` | — | Access key (12+ characters) for `/stats`. Without it usage counts are still collected but cannot be viewed. |
+| `ANALYTICS` | `on` | `off` disables usage counting entirely |
+| `SHARE_TTL_DAYS` | `30` | How long share links (and the photos they use) are kept |
+| `MAX_SHARES` | `50000` | Upper limit on live share links |
 
 ## Known limitations
 
@@ -193,3 +234,7 @@ limiting cannot be spoofed via `X-Forwarded-For`.
 - Saved solo puzzles that use your own photo only open in the browser where you started them.
 - The gallery's resolution caps some pictures below 1,000 pieces (shown in the setup dialog).
 - See `CREDITS.md` for gallery image licensing to confirm before a commercial launch.
+- Challenge times are reported by the sender's browser and are not verified, so a challenge can be faked. They are a friendly comparison, not a leaderboard.
+- The daily puzzle follows each player's local date, so for a few hours around midnight players in different time zones see different days. Link previews for `/daily` use the UTC date.
+- Usage counts are approximate: "visits" are browser-tab sessions (no cookies, so returning visitors are not recognised), counts are written to disk every minute (so up to a minute can be lost if the process crashes), and anyone can send counting requests (they are validated and rate-limited, not authenticated).
+- The daily puzzle only offers today's puzzle; there is no archive yet.
