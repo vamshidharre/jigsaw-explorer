@@ -8,7 +8,9 @@ export default defineConfig({
   build: {
     outDir: 'dist/client',
     emptyOutDir: true,
-    sourcemap: true,
+    // No public sourcemaps or gzip report: keeps the build within 512 MB hosting limits.
+    sourcemap: false,
+    reportCompressedSize: false,
     target: 'es2022',
     chunkSizeWarningLimit: 600,
     rollupOptions: {

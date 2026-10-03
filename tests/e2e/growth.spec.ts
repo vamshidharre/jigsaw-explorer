@@ -35,7 +35,7 @@ test('daily puzzle: play, finish, streak and shareable result', async ({ page, c
   await card.getByRole('button', { name: 'Share result' }).click();
   await expect(page.getByText('Result copied')).toBeVisible();
   const text = await page.evaluate(() => navigator.clipboard.readText());
-  expect(text).toContain(`Knobble daily #${number}`);
+  expect(text).toContain(`Jigbee daily #${number}`);
   expect(text).toContain(`${pieces} pieces in `);
   expect(text).toMatch(/\/daily$/);
 
@@ -139,7 +139,7 @@ test('puzzle pages, category links and the sitemap', async ({ page }) => {
   await prepare(page);
   const res = await page.goto('/puzzle/great-wave');
   expect(res!.status()).toBe(200);
-  await expect(page).toHaveTitle('The Great Wave off Kanagawa jigsaw puzzle — Knobble');
+  await expect(page).toHaveTitle('The Great Wave off Kanagawa jigsaw puzzle — Jigbee');
   await expect(page.getByRole('heading', { level: 1, name: 'The Great Wave off Kanagawa' })).toBeVisible();
   await page.getByRole('button', { name: 'Play this puzzle' }).click();
   await expect(page.getByRole('dialog', { name: 'The Great Wave off Kanagawa' })).toBeVisible();

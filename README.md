@@ -1,4 +1,4 @@
-# Knobble
+# Jigbee
 
 Online jigsaw puzzles you can solve on your own or together with friends in
 real time. Pick a picture (or upload your own), choose anything from 6 to
@@ -34,7 +34,7 @@ every move is arbitrated on the server and broadcast to everyone in the room.
 **Daily puzzle**
 - One puzzle per day (`/daily`): everyone gets the same picture cut the same way (48 pieces on weekdays, about 100 at weekends), cycling through the whole gallery before repeating.
 - Streaks, best streak, best time and a week strip; the first completion of the day counts.
-- "Share result" copies (or, on phones, shares) a spoiler-free text such as `Knobble daily #276 🧩 / 100 pieces in 6:12 / 🔥 3-day streak`.
+- "Share result" copies (or, on phones, shares) a spoiler-free text such as `Jigbee daily #276 🧩 / 100 pieces in 6:12 / 🔥 3-day streak`.
 
 **Share links and challenges**
 - "Send to a friend" (setup dialog or in-game menu) creates a link to a puzzle, with an optional name and message. Own photos are uploaded once and kept as long as the link (30 days). The landing page blurs the picture until the friend plays it.
@@ -193,11 +193,24 @@ once the site has its own domain.
 An existing service created by hand keeps its own name and URL; the `name` in
 `render.yaml` only matters when the Blueprint creates the service.
 
+Recommended settings for a service created by hand: build command
+`npm ci --include=dev && npm run build`, start command `npm start`. Services
+still set up for the original prototype (build `npm install`, start
+`node server.js` or `npm start`) also work: on Render (detected through the
+`RENDER` variable) `npm install` builds the app, and `server.js` builds first
+if no build exists. A failed build fails the deploy, so the previous version stays
+online. Render is treated as production (HSTS, trusted proxy for client IPs) even
+without `NODE_ENV`. The Node version comes from `.node-version` (22).
+
+Without `STATS_TOKEN` the server generates an access key for `/stats`, stores it
+in `DATA_DIR/stats-token` and prints it in the log at every start (search the
+logs for "usage stats access key").
+
 ### Docker
 
 ```bash
-docker build -t knobble .
-docker run -p 3000:3000 -v knobble-data:/data -e PUBLIC_URL=https://your.domain -e STATS_TOKEN=change-me-to-something-long knobble
+docker build -t jigbee .
+docker run -p 3000:3000 -v jigbee-data:/data -e PUBLIC_URL=https://your.domain -e STATS_TOKEN=change-me-to-something-long jigbee
 ```
 
 The image sets `TRUST_PROXY=1`; set it to `0` if the container is exposed
@@ -209,7 +222,7 @@ limiting cannot be spoofed via `X-Forwarded-For`.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `3000` | HTTP/WebSocket port |
-| `NODE_ENV` | — | `production` enables HSTS |
+| `NODE_ENV` | — | `production` enables HSTS and trusts one proxy hop (also implied on Render) |
 | `DATA_DIR` | `./data` | Room snapshots and uploaded images |
 | `TRUST_PROXY` | `1` in production, else `0` | Number of proxy hops to trust for client IPs |
 | `ALLOWED_ORIGINS` | — | Extra origins allowed to open WebSockets (same-origin always allowed) |
@@ -221,8 +234,10 @@ limiting cannot be spoofed via `X-Forwarded-For`.
 | `UPLOAD_STORAGE_MB` | `800` | Total disk space for stored photos; new uploads are refused (503) when it is full |
 | `MAX_CONNECTIONS_PER_IP` | `24` | Concurrent WebSockets per client IP |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` (JSON lines on stdout/stderr) |
-| `PUBLIC_URL` | — | Canonical origin, e.g. `https://knobble.app`, for link previews, canonical URLs and the sitemap. Without it the request's host is used. Set it in production. |
-| `STATS_TOKEN` | — | Access key (12+ characters) for `/stats`. Without it usage counts are still collected but cannot be viewed. |
+| `PUBLIC_URL` | — | Canonical origin, e.g. `https://jigbee.com`, for link previews, canonical URLs and the sitemap. Without it the request's host is used. Set it in production. |
+| `STATS_TOKEN` | generated | Access key (12+ characters) for `/stats`. When unset, one is generated, saved in `DATA_DIR/stats-token` and printed in the log. |
+| `GOOGLE_SITE_VERIFICATION` | — | Google Search Console token (the `content` value of its HTML-tag method) |
+| `BING_SITE_VERIFICATION` | — | Bing Webmaster Tools token (`msvalidate.01`) |
 | `ANALYTICS` | `on` | `off` disables usage counting entirely |
 | `SHARE_TTL_DAYS` | `30` | How long share links (and the photos they use) are kept |
 | `MAX_SHARES` | `50000` | Upper limit on live share links |

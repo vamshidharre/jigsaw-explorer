@@ -30,7 +30,7 @@ import { ShareError, type ShareStore } from '../shares/ShareStore';
 import { safeEqual } from '../util/ids';
 import { WindowRateLimiter } from '../util/rateLimit';
 import { analyticsEventSchema, createRoomSchema, createShareSchema } from '../ws/schemas';
-import { hasHeadBlock, injectHead, renderHeadTags, resolvePageMeta, robotsTxt, sitemapXml } from './pages';
+import { hasHeadBlock, injectHead, renderHeadTags, resolvePageMeta, robotsTxt, sitemapXml, type SiteVerification } from './pages';
 
 export interface AppOptions {
   rooms: RoomManager;
@@ -45,6 +45,8 @@ export interface AppOptions {
   publicUrl: string | null;
   /** Access key for GET /api/stats; the endpoint is disabled when null. */
   statsToken: string | null;
+  /** Search-engine ownership tokens, added to every page. */
+  verification?: SiteVerification;
 }
 
 const HOST_PATTERN = /^[a-z0-9.-]+(:\d{1,5})?$/i;
@@ -328,7 +330,7 @@ export function createApp(opts: AppOptions) {
       if (req.path.includes('.')) return next();
       const meta = resolvePageMeta(req.path, { rooms: opts.rooms, shares: opts.shares });
       res.setHeader('Cache-Control', 'no-cache');
-      res.status(meta.status).type('html').send(injectHead(template, renderHeadTags(meta, originFor(req))));
+      res.status(meta.status).type('html').send(injectHead(template, renderHeadTags(meta, originFor(req), opts.verification)));
     });
   } else if (opts.isProduction) {
     log.warn('client build not found; run `npm run build`', { publicDir: opts.publicDir });

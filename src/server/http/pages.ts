@@ -175,7 +175,12 @@ export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 }
 
-export function renderHeadTags(meta: PageMeta, origin: string): string {
+export interface SiteVerification {
+  google?: string | null;
+  bing?: string | null;
+}
+
+export function renderHeadTags(meta: PageMeta, origin: string, verification: SiteVerification = {}): string {
   const url = `${origin}${meta.path}`;
   const image = `${origin}${meta.image}`;
   const tags: Array<[string, string, string]> = [
@@ -196,6 +201,8 @@ export function renderHeadTags(meta: PageMeta, origin: string): string {
     ['name', 'twitter:image', image],
   ];
   if (meta.noindex) tags.push(['name', 'robots', 'noindex']);
+  if (verification.google) tags.push(['name', 'google-site-verification', verification.google]);
+  if (verification.bing) tags.push(['name', 'msvalidate.01', verification.bing]);
   const lines = [`<title>${escapeHtml(meta.title)}</title>`];
   for (const [attr, key, value] of tags) lines.push(`<meta ${attr}="${key}" content="${escapeHtml(value)}" />`);
   if (!meta.noindex) lines.push(`<link rel="canonical" href="${escapeHtml(url)}" />`);

@@ -93,10 +93,10 @@ describe('usage counting labels', () => {
   });
 
   it('reduces referrers to host names', () => {
-    expect(referrerLabel('', 'knobble.app')).toBe('direct');
-    expect(referrerLabel('https://www.reddit.com/r/Jigsawpuzzles/comments/x?y=1', 'knobble.app')).toBe('reddit.com');
-    expect(referrerLabel('https://knobble.app/daily', 'knobble.app')).toBe('direct');
-    expect(referrerLabel('not a url', 'knobble.app')).toBe('other');
+    expect(referrerLabel('', 'jigbee.com')).toBe('direct');
+    expect(referrerLabel('https://www.reddit.com/r/Jigsawpuzzles/comments/x?y=1', 'jigbee.com')).toBe('reddit.com');
+    expect(referrerLabel('https://jigbee.com/daily', 'jigbee.com')).toBe('direct');
+    expect(referrerLabel('not a url', 'jigbee.com')).toBe('other');
   });
 
   it('only accepts known labels', () => {
@@ -122,12 +122,12 @@ describe('share links and brand', () => {
   });
 
   it('extracts share ids from links', () => {
-    expect(normalizeShareId('https://knobble.app/s/AbCdEfGh12')).toBe('abcdefgh12');
+    expect(normalizeShareId('https://jigbee.com/s/AbCdEfGh12')).toBe('abcdefgh12');
     expect(normalizeShareId(' abcdefgh12 ')).toBe('abcdefgh12');
   });
 
   it('builds page titles', () => {
-    expect(pageTitle()).toBe('Knobble — Online jigsaw puzzles, solo or together');
-    expect(pageTitle('Puzzles')).toBe('Puzzles — Knobble');
+    expect(pageTitle()).toBe('Jigbee — Online jigsaw puzzles, solo or together');
+    expect(pageTitle('Puzzles')).toBe('Puzzles — Jigbee');
   });
 });

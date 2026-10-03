@@ -1,7 +1,7 @@
 # Render Blueprint: https://render.com/docs/blueprint-spec
 services:
   - type: web
-    name: knobble
+    name: jigbee
     runtime: node
     # A persistent disk (below) requires a paid instance type. Without it the app
     # still works, but rooms and uploaded photos are lost on every deploy/restart.
@@ -21,7 +21,7 @@ services:
       # Access key for the /stats page; Render generates a random value (see the Environment tab).
       - key: STATS_TOKEN
         generateValue: true
-      # Once you have a domain, also set PUBLIC_URL (e.g. https://knobble.app) so link previews
+      # Once you have a domain, also set PUBLIC_URL (e.g. https://jigbee.com) so link previews
       # and the sitemap use it instead of the request host.
     disk:
       name: jigsaw-data

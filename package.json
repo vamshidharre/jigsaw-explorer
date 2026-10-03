@@ -1,20 +1,21 @@
 {
-  "name": "knobble",
+  "name": "jigbee",
   "version": "2.0.0",
   "private": true,
   "description": "Real-time multiplayer online jigsaw puzzles",
   "type": "module",
   "engines": {
-    "node": ">=20.11"
+    "node": ">=20.19"
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:client": "vite",
     "dev:server": "tsx watch --clear-screen=false src/server/index.ts",
     "build": "npm run build:client && npm run build:server",
-    "build:client": "vite build",
+    "build:client": "node --max-old-space-size=384 ./node_modules/vite/bin/vite.js build",
     "build:server": "node scripts/build-server.mjs",
-    "start": "node dist/server/index.js",
+    "start": "node server.js",
+    "postinstall": "node scripts/postinstall.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.e2e.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

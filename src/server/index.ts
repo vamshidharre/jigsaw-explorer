@@ -1,4 +1,7 @@
+import { randomBytes } from 'node:crypto';
+import { readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
+import path from 'node:path';
 import { Analytics } from './analytics/Analytics';
 import { config } from './config';
 import { createApp } from './http/app';
@@ -8,6 +11,24 @@ import { RoomStore } from './persistence/roomStore';
 import { RoomManager } from './rooms/RoomManager';
 import { ShareStore } from './shares/ShareStore';
 import { attachGateway } from './ws/gateway';
+
+/**
+ * The /stats access key: STATS_TOKEN if set, otherwise one generated once and
+ * kept in the data directory. A generated key is printed in the log so the
+ * owner can find it in the hosting dashboard.
+ */
+async function resolveStatsToken(cfg: typeof config): Promise<string | null> {
+  if (cfg.statsToken) return cfg.statsToken;
+  if (!cfg.analytics) return null;
+  const file = path.join(cfg.dataDir, 'stats-token');
+  let token = (await readFile(file, 'utf8').catch(() => '')).trim();
+  if (token.length < 12) {
+    token = randomBytes(18).toString('base64url');
+    await writeFile(file, token, { mode: 0o600 });
+  }
+  log.info('usage stats access key (open /stats; set STATS_TOKEN to choose your own)', { statsToken: token });
+  return token;
+}
 
 export async function startServer(overrides: Partial<typeof config> = {}) {
   const cfg = { ...config, ...overrides };
@@ -33,7 +54,8 @@ export async function startServer(overrides: Partial<typeof config> = {}) {
     analytics,
     publicDir: cfg.publicDir,
     publicUrl: cfg.publicUrl,
-    statsToken: cfg.statsToken,
+    statsToken: await resolveStatsToken(cfg),
+    verification: { google: cfg.googleSiteVerification, bing: cfg.bingSiteVerification },
     uploadMaxBytes: cfg.uploadMaxBytes,
     trustProxy: cfg.trustProxy,
     isProduction: cfg.isProduction,

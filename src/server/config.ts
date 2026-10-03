@@ -8,9 +8,19 @@ function int(name: string, fallback: number): number {
   return n;
 }
 
-const isProduction = process.env.NODE_ENV === 'production';
+/** Render sets RENDER=true for every service, also ones created without NODE_ENV. */
+const onRender = process.env.RENDER === 'true';
+const isProduction = process.env.NODE_ENV === 'production' || onRender;
 
-/** PUBLIC_URL without a trailing slash, e.g. `https://knobble.app`. */
+/** Ownership tokens for search-engine webmaster tools. */
+function verificationToken(name: string): string | null {
+  const raw = (process.env[name] ?? '').trim();
+  if (!raw) return null;
+  if (!/^[A-Za-z0-9_-]{8,120}$/.test(raw)) throw new Error(`${name} must be the token only (letters, digits, - and _)`);
+  return raw;
+}
+
+/** PUBLIC_URL without a trailing slash, e.g. `https://jigbee.com`. */
 function publicUrl(): string | null {
   const raw = (process.env.PUBLIC_URL ?? '').trim();
   if (!raw) return null;
@@ -18,7 +28,7 @@ function publicUrl(): string | null {
   try {
     url = new URL(raw);
   } catch {
-    throw new Error('PUBLIC_URL must be an absolute URL such as https://knobble.app');
+    throw new Error('PUBLIC_URL must be an absolute URL such as https://jigbee.com');
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('PUBLIC_URL must start with http:// or https://');
   return url.origin;
@@ -60,6 +70,9 @@ export const config = {
   maxShares: int('MAX_SHARES', 50_000),
   /** Cookie-free usage counting; set ANALYTICS=off to disable. */
   analytics: (process.env.ANALYTICS ?? 'on').toLowerCase() !== 'off',
-  /** Access key for the /stats page; usage stats cannot be viewed without it. */
+  /** Access key for the /stats page; generated (and logged) at startup when unset. */
   statsToken: statsToken(),
+  /** <meta> verification for Google Search Console and Bing Webmaster Tools. */
+  googleSiteVerification: verificationToken('GOOGLE_SITE_VERIFICATION'),
+  bingSiteVerification: verificationToken('BING_SITE_VERIFICATION'),
 } as const;

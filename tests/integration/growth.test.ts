@@ -133,13 +133,13 @@ describe('page metadata and link previews', () => {
 
   it('gives each page its own title, description and preview image', async () => {
     const home = await page('/');
-    expect(home.html).toContain('<title>Knobble — Online jigsaw puzzles, solo or together</title>');
+    expect(home.html).toContain('<title>Jigbee — Online jigsaw puzzles, solo or together</title>');
     expect(home.html).not.toContain('<title>Default</title>');
     expect(meta(home.html, 'og:image')).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/og\/catalog\/[a-z-]+\.jpg$/);
     expect(home.html).toContain('<link rel="canonical"');
 
     const puzzle = await page('/puzzle/great-wave');
-    expect(puzzle.html).toContain('<title>The Great Wave off Kanagawa jigsaw puzzle — Knobble</title>');
+    expect(puzzle.html).toContain('<title>The Great Wave off Kanagawa jigsaw puzzle — Jigbee</title>');
     expect(meta(puzzle.html, 'og:image')).toContain('/og/catalog/great-wave.jpg');
     expect(meta(puzzle.html, 'robots')).toBeNull();
 
@@ -192,11 +192,11 @@ describe('page metadata and link previews', () => {
     });
     expect(meta(forged, 'og:url')).toBe('http://localhost/puzzles');
     await server.stop();
-    server = await launch(path.join(dir, 'data'), { publicDir: path.join(dir, 'client'), publicUrl: 'https://knobble.app' });
+    server = await launch(path.join(dir, 'data'), { publicDir: path.join(dir, 'client'), publicUrl: 'https://jigbee.com' });
     const res = await page('/puzzles');
-    expect(meta(res.html, 'og:url')).toBe('https://knobble.app/puzzles');
-    expect(meta(res.html, 'og:image')).toMatch(/^https:\/\/knobble\.app\/og\//);
-    expect(await (await fetch(`${server.url}/robots.txt`)).text()).toContain('Sitemap: https://knobble.app/sitemap.xml');
+    expect(meta(res.html, 'og:url')).toBe('https://jigbee.com/puzzles');
+    expect(meta(res.html, 'og:image')).toMatch(/^https:\/\/jigbee\.com\/og\//);
+    expect(await (await fetch(`${server.url}/robots.txt`)).text()).toContain('Sitemap: https://jigbee.com/sitemap.xml');
   });
 
   it('renders 1200×630 preview images for gallery pictures and uploads', async () => {
@@ -302,5 +302,26 @@ describe('upload storage limit', () => {
     const res = await fetch(`${server.url}/api/uploads`, { method: 'POST', headers: { 'content-type': 'image/png' }, body: png });
     expect(res.status).toBe(503);
     expect(((await res.json()) as { error: string }).error).toMatch(/storage is full/);
+  });
+});
+
+describe('hosting defaults', () => {
+  it('generates a stats access key once and keeps it across restarts', async () => {
+    await start({ statsToken: null });
+    const token = (await readFile(path.join(dir, 'data', 'stats-token'), 'utf8')).trim();
+    expect(token.length).toBeGreaterThanOrEqual(20);
+    expect((await fetch(`${server.url}/api/stats`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(200);
+    await server.stop();
+    server = await launch(path.join(dir, 'data'), { publicDir: path.join(dir, 'client'), statsToken: null });
+    expect((await fetch(`${server.url}/api/stats`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(200);
+  });
+
+  it('adds search-engine verification tags to every page', async () => {
+    await start({ googleSiteVerification: 'google-token_123', bingSiteVerification: 'BING0123456789' });
+    for (const p of ['/', '/puzzles', '/room/ABCDEF']) {
+      const { html } = await page(p);
+      expect(meta(html, 'google-site-verification')).toBe('google-token_123');
+      expect(meta(html, 'msvalidate.01')).toBe('BING0123456789');
+    }
   });
 });
